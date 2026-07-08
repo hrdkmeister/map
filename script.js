@@ -164,7 +164,85 @@ function setupDesktopWheelZoomGuard() {
   );
 }
 
+function setupNoticeModal() {
+  const STORAGE_KEY = "meisterMapNoticeDismissedDate";
+  const modal = document.getElementById("noticeModal");
+
+  if (!modal) {
+    return;
+  }
+
+  const closeButton = document.getElementById("noticeCloseButton");
+  const dontShowCheckbox = document.getElementById("noticeDontShowToday");
+  const reopenLink = document.getElementById("noticeReopenLink");
+
+  function todayString() {
+    const now = new Date();
+    return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+  }
+
+  function showModal() {
+    modal.classList.add("visible");
+  }
+
+  function hideModal() {
+    modal.classList.remove("visible");
+  }
+
+  let dismissedDate = null;
+
+  try {
+    dismissedDate = localStorage.getItem(STORAGE_KEY);
+  } catch (e) {
+    dismissedDate = null;
+  }
+
+  if (dismissedDate !== todayString()) {
+    showModal();
+  }
+
+  if (closeButton) {
+    closeButton.addEventListener("click", () => {
+      if (dontShowCheckbox && dontShowCheckbox.checked) {
+        try {
+          localStorage.setItem(STORAGE_KEY, todayString());
+        } catch (e) {
+          console.warn("안내 팝업 상태 저장 실패:", e);
+        }
+      }
+
+      hideModal();
+    });
+  }
+
+  if (reopenLink) {
+    reopenLink.addEventListener("click", event => {
+      event.preventDefault();
+      if (dontShowCheckbox) {
+        dontShowCheckbox.checked = false;
+      }
+      showModal();
+    });
+  }
+}
+
+setupNoticeModal();
+
 setupDesktopWheelZoomGuard();
+
+// 브라우저 자체의 Ctrl(⌘)+휠 페이지 확대/축소를 막는 전역 안전장치.
+// 지도 위가 아니라도, 스크롤 중 커서가 살짝 벗어나거나
+// 트랙패드/브라우저에 따라 페이지 전체가 확대되며
+// 사이드바 크기까지 같이 바뀌는 것을 방지한다.
+window.addEventListener(
+  "wheel",
+  event => {
+    if (event.ctrlKey || event.metaKey) {
+      event.preventDefault();
+    }
+  },
+  { passive: false }
+);
 
 let allRows = [];
 let currentRows = [];

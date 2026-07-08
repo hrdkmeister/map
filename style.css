@@ -85,6 +85,11 @@ header {
 }
 
 aside {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }
@@ -322,6 +327,29 @@ button {
   display: grid;
   gap: 8px;
   padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+#masterList:hover {
+  scrollbar-color: #b7c3d6 transparent;
+}
+
+#masterList::-webkit-scrollbar {
+  width: 6px;
+}
+
+#masterList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#masterList::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 999px;
+}
+
+#masterList:hover::-webkit-scrollbar-thumb {
+  background-color: #b7c3d6;
 }
 
 .master-item {
@@ -600,9 +628,9 @@ main {
   }
 
   .header-left h1 {
-  font-size: clamp(18px, 6vw, 26px);
-  white-space: nowrap;
-}
+    font-size: clamp(18px, 6vw, 26px);
+    white-space: nowrap;
+  }
 
   .container {
     height: auto;
@@ -764,4 +792,101 @@ main {
   font-size: 13px;
 }
 
-.site-footer{padding:24px;text-align:center;background:#f5f7fb;border-top:1px solid #ddd;font-size:14px;line-height:1.7;color:#444}.site-footer p{margin:6px 0}.site-footer a{color:#0b57d0;text-decoration:none;font-weight:600}
+.site-footer {
+  padding: 16px 24px;
+  text-align: center;
+  background: #f5f7fb;
+  border-top: 1px solid #ddd;
+  font-size: 13px;
+  color: #667085;
+}
+
+.site-footer a {
+  color: #245b92;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.site-footer a:hover {
+  text-decoration: underline;
+}
+
+.site-footer-inner p {
+  margin: 0;
+}
+
+.notice-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(10, 20, 35, 0.55);
+}
+
+.notice-overlay.visible {
+  display: flex;
+}
+
+.notice-box {
+  width: min(440px, 100%);
+  background: white;
+  border-radius: 20px;
+  padding: 26px;
+  box-shadow: 0 20px 48px rgba(10, 20, 35, 0.3);
+}
+
+.notice-box h2 {
+  margin: 0 0 14px;
+  font-size: 18px;
+  color: #172033;
+}
+
+.notice-box p {
+  margin: 8px 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #445;
+}
+
+.notice-contact {
+  font-weight: 800;
+  color: #172033 !important;
+}
+
+.notice-contact a {
+  color: #245b92;
+  text-decoration: none;
+}
+
+.notice-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.notice-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #667085;
+  cursor: pointer;
+}
+
+.notice-close-button {
+  padding: 9px 20px;
+  border-radius: 10px;
+  background: #123456;
+  color: white;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.notice-close-button:hover {
+  background: #245b92;
+}
