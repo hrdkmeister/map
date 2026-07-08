@@ -188,6 +188,10 @@ let sortByDistance = false;
 // "car"이면 자동차정비
 let activeJobFilter = "";
 
+// 현재 선택된 지역 필터
+// ""이면 전체 지역
+let activeRegionFilter = "";
+
 function getText(value) {
   if (value === undefined || value === null) {
     return "";
@@ -670,6 +674,69 @@ function rowMatchesKeyword(row, keyword) {
   return text.includes(keyword);
 }
 
+const REGION_MAP = {
+  "서울특별시": "서울",
+  "서울": "서울",
+  "부산광역시": "부산",
+  "부산": "부산",
+  "대구광역시": "대구",
+  "대구": "대구",
+  "인천광역시": "인천",
+  "인천": "인천",
+  "광주광역시": "광주",
+  "광주": "광주",
+  "대전광역시": "대전",
+  "대전": "대전",
+  "울산광역시": "울산",
+  "울산": "울산",
+  "세종특별자치시": "세종",
+  "세종": "세종",
+  "경기도": "경기",
+  "경기": "경기",
+  "강원특별자치도": "강원",
+  "강원도": "강원",
+  "강원": "강원",
+  "충청북도": "충북",
+  "충북": "충북",
+  "충청남도": "충남",
+  "충남": "충남",
+  "전북특별자치도": "전북",
+  "전라북도": "전북",
+  "전북": "전북",
+  "전라남도": "전남",
+  "전남": "전남",
+  "경상북도": "경북",
+  "경북": "경북",
+  "경상남도": "경남",
+  "경남": "경남",
+  "제주특별자치도": "제주",
+  "제주도": "제주",
+  "제주": "제주"
+};
+
+const REGION_ORDER = [
+  "서울", "경기", "인천", "강원",
+  "대전", "세종", "충남", "충북",
+  "광주", "전남", "전북",
+  "대구", "경북",
+  "부산", "울산", "경남",
+  "제주"
+];
+
+function getRegionLabel(address) {
+  const token = getText(address).split(/\s+/)[0];
+  return REGION_MAP[token] || "기타";
+}
+
+function rowMatchesRegionFilter(row) {
+  if (activeRegionFilter === "") {
+    return true;
+  }
+
+  const address = getField(row, ["주소", "사업장 주소"]);
+  return getRegionLabel(address) === activeRegionFilter;
+}
+
 function rowMatchesJobFilter(row) {
   if (activeJobFilter === "") {
     return true;
@@ -685,7 +752,7 @@ function applyFilters() {
   const keyword = getText(document.getElementById("searchInput").value).toLowerCase();
 
   currentRows = allRows.filter(row => {
-    return rowMatchesKeyword(row, keyword) && rowMatchesJobFilter(row);
+    return rowMatchesKeyword(row, keyword) && rowMatchesJobFilter(row) && rowMatchesRegionFilter(row);
   });
 
   if (sortByDistance && userCoords) {
@@ -840,6 +907,51 @@ function setupJobFilterButtons() {
   updateLegendStyle();
 }
 
+function populateRegionOptions() {
+  const select = document.getElementById("regionFilterSelect");
+
+  if (!select) {
+    return;
+  }
+
+  const presentRegions = new Set();
+
+  allRows.forEach(row => {
+    const address = getField(row, ["주소", "사업장 주소"]);
+    presentRegions.add(getRegionLabel(address));
+  });
+
+  const orderedRegions = REGION_ORDER.filter(region => presentRegions.has(region));
+
+  if (presentRegions.has("기타")) {
+    orderedRegions.push("기타");
+  }
+
+  select.innerHTML = `<option value="">지역 전체</option>`;
+
+  orderedRegions.forEach(region => {
+    const option = document.createElement("option");
+    option.value = region;
+    option.textContent = region;
+    select.appendChild(option);
+  });
+
+  select.value = activeRegionFilter;
+}
+
+function setupRegionFilterSelect() {
+  const select = document.getElementById("regionFilterSelect");
+
+  if (!select) {
+    return;
+  }
+
+  select.addEventListener("change", () => {
+    activeRegionFilter = select.value;
+    applyFilters();
+  });
+}
+
 
 document.addEventListener("click", event => {
   const shareButton = event.target.closest(".popup-share-button");
@@ -871,8 +983,15 @@ document.getElementById("searchButton").addEventListener("click", () => {
 document.getElementById("resetButton").addEventListener("click", () => {
   document.getElementById("searchInput").value = "";
   activeJobFilter = "";
+  activeRegionFilter = "";
   sortByDistance = false;
   userCoords = null;
+
+  const regionSelect = document.getElementById("regionFilterSelect");
+
+  if (regionSelect) {
+    regionSelect.value = "";
+  }
 
   if (userLocationMarker) {
     map.removeLayer(userLocationMarker);
@@ -907,6 +1026,7 @@ document.getElementById("searchInput").addEventListener("keydown", event => {
 });
 
 setupJobFilterButtons();
+setupRegionFilterSelect();
 
 Papa.parse(CSV_FILE, {
   download: true,
@@ -921,6 +1041,7 @@ Papa.parse(CSV_FILE, {
     });
 
     currentRows = allRows;
+    populateRegionOptions();
     showMarkers(currentRows);
     updateLegendStyle();
 

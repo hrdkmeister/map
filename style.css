@@ -92,32 +92,6 @@ aside {
   overflow-x: hidden;
 }
 
-aside {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-}
-
-aside:hover {
-  scrollbar-color: #b7c3d6 transparent;
-}
-
-aside::-webkit-scrollbar {
-  width: 6px;
-}
-
-aside::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-aside::-webkit-scrollbar-thumb {
-  background-color: transparent;
-  border-radius: 999px;
-}
-
-aside:hover::-webkit-scrollbar-thumb {
-  background-color: #b7c3d6;
-}
-
 .card {
   background: white;
   border-radius: 18px;
@@ -156,6 +130,31 @@ aside:hover::-webkit-scrollbar-thumb {
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.region-select {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #cdd6e2;
+  background: white;
+  color: #20304a;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  max-width: 110px;
+}
+
+.region-select:focus {
+  outline: none;
+  border-color: #245b92;
+  box-shadow: 0 0 0 3px rgba(36, 91, 146, 0.13);
 }
 
 .card-title-row h2 {
@@ -583,9 +582,7 @@ main {
   }
 
   .header-left h1 {
-  font-size: clamp(18px, 6vw, 26px);
-  white-space: nowrap;
-}
+    font-size: 26px;
   }
 
   .container {
