@@ -583,7 +583,9 @@ main {
   }
 
   .header-left h1 {
-    font-size: 26px;
+  font-size: clamp(18px, 6vw, 26px);
+  white-space: nowrap;
+}
   }
 
   .container {
