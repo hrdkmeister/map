@@ -92,6 +92,32 @@ aside {
   overflow-x: hidden;
 }
 
+aside {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+aside:hover {
+  scrollbar-color: #b7c3d6 transparent;
+}
+
+aside::-webkit-scrollbar {
+  width: 6px;
+}
+
+aside::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+aside::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 999px;
+}
+
+aside:hover::-webkit-scrollbar-thumb {
+  background-color: #b7c3d6;
+}
+
 .card {
   background: white;
   border-radius: 18px;
