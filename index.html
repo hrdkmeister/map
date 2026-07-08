@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>대한민국 명장지도</title>
+
+<meta name="description" content="대한민국 명장의 사업장을 한눈에 확인하는 시범서비스">
+<meta name="theme-color" content="#123456">
+
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+
+<!--
+  접속 통계 사용 시 아래 GA_MEASUREMENT_ID를 실제 Google Analytics 측정 ID로 교체해라.
+  예: G-XXXXXXXXXX
+-->
+<script>
+  window.GA_MEASUREMENT_ID = "";
+</script>
+<script>
+  if (window.GA_MEASUREMENT_ID) {
+    const gaScript = document.createElement("script");
+    gaScript.async = true;
+    gaScript.src = `https://www.googletagmanager.com/gtag/js?id=${window.GA_MEASUREMENT_ID}`;
+    document.head.appendChild(gaScript);
+
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    window.gtag = gtag;
+    gtag("js", new Date());
+    gtag("config", window.GA_MEASUREMENT_ID);
+  }
+</script>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+
+<link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+<header>
+
+<div class="header-left">
+
+<h1>대한민국 명장지도</h1>
+
+<p>대한민국 명장의 사업장을 한눈에 확인하세요.</p>
+
+</div>
+
+<div class="header-right">
+
+<div class="result-box">
+
+<span>검색결과</span>
+
+<strong id="resultCount">0</strong>
+
+</div>
+
+</div>
+
+</header>
+
+<div class="container">
+
+<aside>
+
+<div class="logo-card">
+
+<img src="logo-hrdk.png" alt="한국산업인력공단 글로벌숙련기술진흥원">
+
+</div>
+
+<div class="card">
+
+<h2>검색</h2>
+
+<input
+id="searchInput"
+type="text"
+placeholder="성함, 직종, 사업장명 검색">
+
+<div class="button-area">
+
+<button id="searchButton">
+
+검색
+
+</button>
+
+<button id="resetButton">
+
+초기화
+
+</button>
+
+</div>
+
+<button id="nearbyButton" class="nearby-button" type="button">
+
+📍 내 주변 명장 찾기
+
+</button>
+
+</div>
+
+<div class="card">
+
+<div class="card-title-row">
+
+<h2>직종</h2>
+
+<button id="jobFilterResetButton" class="small-reset-button">
+전체
+</button>
+
+</div>
+
+<div class="legend" id="jobFilterArea">
+
+<button class="job-filter-button" data-job-filter="bakery" type="button">
+
+<span class="legend-circle bakery">
+
+🍰
+
+</span>
+
+<span>제과·제빵</span>
+
+</button>
+
+<button class="job-filter-button" data-job-filter="cooking" type="button">
+
+<span class="legend-circle cooking">
+
+👨‍🍳
+
+</span>
+
+<span>요리</span>
+
+</button>
+
+<button class="job-filter-button" data-job-filter="car" type="button">
+
+<span class="legend-circle car">
+
+🚗
+
+</span>
+
+<span>자동차정비</span>
+
+</button>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>명장 목록</h2>
+
+<div id="masterList">
+
+</div>
+
+</div>
+
+</aside>
+
+<main>
+
+<div class="map-wrapper">
+
+<div id="map">
+
+</div>
+
+<div id="mapTapOverlay" class="map-tap-overlay">
+
+<span>지도를 터치하면 움직일 수 있어요</span>
+
+</div>
+
+<div id="mapWheelHint" class="map-wheel-hint">
+
+Ctrl(⌘) + 스크롤로 지도를 확대/축소할 수 있어요
+
+</div>
+
+</div>
+
+</main>
+
+</div>
+
+<footer class="site-footer">
+  <div class="site-footer-inner">
+    <strong>대한민국 명장지도 (시범서비스)</strong>
+    <p>※ 본 서비스는 대한민국 명장 사업장 정보를 국민에게 제공하기 위한 시범서비스입니다.</p>
+    <p>※ 본 서비스는 시범서비스로 운영되며, 일부 정보는 최신 정보와 차이가 있을 수 있습니다.</p>
+    <p>※ 사업장 정보의 수정·삭제 또는 오류 정정이 필요한 경우 아래 담당자에게 연락하여 주시기 바랍니다.</p>
+    <p class="footer-contact">담당자 : <a href="tel:032-509-1836">032-509-1836</a></p>
+    <p class="footer-copy">© 2026 HRDKOREA</p>
+  </div>
+</footer>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+<script src="script.js"></script>
+
+</body>
+
+</html>
