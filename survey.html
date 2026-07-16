@@ -4,464 +4,199 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>대한민국 명장지도 - 사업장 정보 확인</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
 <style>
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", Arial, sans-serif;
-    background: #eef3f8;
-    color: #172033;
-  }
-  header {
-    padding: 22px 20px;
-    background: linear-gradient(135deg, #0437ab, #002d70);
-    color: white;
-  }
-  header h1 {
-    margin: 0 0 6px;
-    font-size: 19px;
-  }
-  header p {
-    margin: 0;
-    color: #dce8f5;
-    font-size: 13px;
-    line-height: 1.5;
-  }
-  .wrap {
-    max-width: 640px;
-    margin: 0 auto;
-    padding: 18px 16px 80px;
-  }
-  .name-picker {
-    background: white;
-    border-radius: 16px;
-    padding: 18px;
-    box-shadow: 0 6px 18px rgba(20,35,60,0.08);
-    margin-bottom: 16px;
-  }
-  .name-picker p {
-    font-size: 13px;
-    color: #667085;
-    margin: 0 0 10px;
-  }
-  .name-picker select {
-    width: 100%;
-    padding: 10px 12px;
-    border-radius: 10px;
-    border: 1px solid #cdd6e2;
-    font-size: 14px;
-  }
-  .greeting {
-    background: white;
-    border-radius: 16px;
-    padding: 18px;
-    box-shadow: 0 6px 18px rgba(20,35,60,0.08);
-    margin-bottom: 14px;
-  }
-  .greeting h2 {
-    margin: 0 0 6px;
-    font-size: 17px;
-  }
-  .greeting p {
-    margin: 4px 0;
-    font-size: 13px;
-    color: #445;
-    line-height: 1.55;
-  }
-  .biz-card {
-    background: white;
-    border-radius: 16px;
-    padding: 16px;
-    box-shadow: 0 6px 18px rgba(20,35,60,0.08);
-    margin-bottom: 12px;
-    border: 1px solid #e1e8f0;
-  }
-  .biz-card.answered {
-    border-left: 4px solid #0f9d6a;
-  }
-  .biz-title {
-    font-weight: 800;
-    font-size: 15px;
-    margin-bottom: 4px;
-  }
-  .biz-sub {
-    font-size: 12px;
-    color: #667085;
-    margin-bottom: 4px;
-  }
-  .biz-address {
-    font-size: 13px;
-    color: #26364f;
-    margin-bottom: 6px;
-  }
-  .biz-link {
-    display: inline-block;
-    font-size: 12px;
-    color: #0437ab;
-    text-decoration: none;
-    font-weight: 700;
-    margin-bottom: 10px;
-  }
-  .biz-link:hover { text-decoration: underline; }
-
-  .option-list {
-    display: grid;
-    gap: 8px;
-    margin-top: 8px;
-  }
-  .option-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    border: 1px solid #e1e8f0;
-    background: #f7f9fc;
-    cursor: pointer;
-    font-size: 13px;
-    line-height: 1.4;
-  }
-  .option-item input {
-    margin-top: 2px;
-  }
-  .option-item.checked {
-    border-color: #0437ab;
-    background: #eaf1fd;
-    font-weight: 700;
-  }
-  .option-item strong {
-    display: block;
-  }
-  .option-item span.desc {
-    display: block;
-    font-weight: 400;
-    color: #667085;
-    font-size: 12px;
-  }
-
-  .note-field {
-    margin-top: 10px;
-  }
-  .note-field summary {
-    font-size: 12px;
-    color: #245b92;
-    cursor: pointer;
-  }
-  .note-field textarea {
-    width: 100%;
-    min-height: 50px;
-    margin-top: 8px;
-    padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid #e1e8f0;
-    font-size: 12px;
-    font-family: inherit;
-    resize: vertical;
-  }
-
-  .submit-bar {
-    position: sticky;
-    bottom: 0;
-    background: white;
-    border-top: 1px solid #e1e8f0;
-    padding: 12px 16px;
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  .progress-text {
-    font-size: 12px;
-    color: #667085;
-    margin-right: auto;
-  }
-  button {
-    border: none;
-    cursor: pointer;
-    font-weight: 800;
-    border-radius: 10px;
-    padding: 10px 16px;
-    font-size: 13px;
-  }
-  .btn-primary { background: #0437ab; color: white; }
-  .btn-secondary { background: #e8eef5; color: #20304a; }
-
-  .empty-state {
-    text-align: center;
-    color: #667085;
-    padding: 40px 16px;
-    font-size: 14px;
-  }
-
-  .toast {
-    position: fixed;
-    left: 50%;
-    bottom: 76px;
-    transform: translateX(-50%) translateY(10px);
-    background: #172033;
-    color: white;
-    padding: 10px 18px;
-    border-radius: 999px;
-    font-size: 13px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease, transform 0.2s ease;
-    z-index: 999;
-  }
-  .toast.visible {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",Arial,sans-serif;background:#eef3f8;color:#172033}
+header{padding:22px 20px;background:linear-gradient(135deg,#0437ab,#002d70);color:white}
+header h1{margin:0 0 6px;font-size:20px}
+header p{margin:0;color:#dce8f5;font-size:13px;line-height:1.6}
+.wrap{max-width:720px;margin:0 auto;padding:18px 16px 90px}
+.panel,.biz-card{background:white;border-radius:16px;padding:18px;box-shadow:0 6px 18px rgba(20,35,60,.08);margin-bottom:14px}
+.greeting h2{margin:0 0 7px;font-size:18px}
+.greeting p{margin:4px 0;font-size:13px;line-height:1.6;color:#445}
+.biz-card{border:1px solid #e1e8f0}
+.biz-card.answered{border-left:5px solid #0f9d6a}
+.biz-title{font-weight:800;font-size:16px;margin-bottom:5px}
+.biz-sub{font-size:12px;color:#667085;margin-bottom:5px}
+.biz-address{font-size:13px;color:#26364f;margin-bottom:7px}
+.biz-link{display:inline-block;font-size:12px;color:#0437ab;text-decoration:none;font-weight:700;margin-bottom:12px}
+.question-title{font-size:13px;font-weight:800;margin:12px 0 8px}
+.option-list{display:grid;gap:8px}
+.option-item{display:flex;align-items:flex-start;gap:9px;padding:11px 12px;border-radius:11px;border:1px solid #e1e8f0;background:#f7f9fc;cursor:pointer;font-size:13px;line-height:1.45}
+.option-item input{margin-top:3px}
+.option-item.checked{border-color:#0437ab;background:#eaf1fd}
+.option-item strong{display:block}
+.option-item .desc{display:block;color:#667085;font-size:12px;font-weight:400}
+.extra-field{display:none;margin-top:9px}
+.extra-field.visible{display:block}
+input[type=text],textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #cdd6e2;font-size:14px;font-family:inherit}
+.representative-box,.consent-box{display:block;margin-top:12px;padding:11px 12px;border:1px solid #e1e8f0;border-radius:11px;background:#fbfcfe;font-size:13px;line-height:1.5}
+.note-field{margin-top:10px}
+.note-field summary{font-size:12px;color:#245b92;cursor:pointer}
+.note-field textarea{min-height:65px;margin-top:8px;resize:vertical}
+.submit-bar{position:sticky;bottom:0;background:white;border-top:1px solid #e1e8f0;padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;box-shadow:0 -4px 16px rgba(0,0,0,.06)}
+.progress-text{font-size:12px;color:#667085;margin-right:auto}
+button{border:none;cursor:pointer;font-weight:800;border-radius:10px;padding:10px 16px;font-size:13px}
+.btn-primary{background:#0437ab;color:white}
+.btn-secondary{background:#e8eef5;color:#20304a}
+button:disabled{opacity:.55;cursor:not-allowed}
+.state{text-align:center;color:#667085;padding:45px 18px;font-size:14px;line-height:1.7}
+.toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%) translateY(10px);background:#172033;color:white;padding:10px 18px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;z-index:999}
+.toast.visible{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
-
 <header>
   <h1>대한민국 명장지도 - 사업장 정보 확인</h1>
-  <p>안녕하세요. 명장지도 시범서비스에 등록된 사업장 정보를 확인하고자 합니다.<br>본인 성함의 사업장이 아래에 나오면, 각 항목마다 해당하는 근무 형태를 체크해주세요.</p>
+  <p>명장지도 시범서비스에 표시할 사업장과 명장님의 관계를 확인합니다.<br>기존 응답이 있으면 자동으로 불러오며, 다시 저장하면 최신 내용으로 변경됩니다.</p>
 </header>
 
 <div class="wrap">
-  <div class="name-picker" id="namePicker">
-    <p>본인 성함을 선택해주세요.</p>
-    <select id="nameSelect">
-      <option value="">-- 성함 선택 --</option>
-    </select>
-  </div>
-
-  <div id="content"></div>
-
-  <div class="submit-bar" id="submitBar" style="display:none;">
+  <div id="content"><div class="panel state">정보를 불러오는 중입니다.</div></div>
+  <div class="submit-bar" id="submitBar" style="display:none">
     <span class="progress-text" id="progressText"></span>
-    <button class="btn-secondary" id="copyBtn" type="button">결과 복사하기</button>
-    <button class="btn-primary" id="emailBtn" type="button">이메일로 제출</button>
+    <button class="btn-secondary" id="copyBtn" type="button">결과 복사</button>
+    <button class="btn-primary" id="submitBtn" type="button">저장하기</button>
   </div>
 </div>
-
 <div class="toast" id="toast"></div>
 
 <script>
-const DATA = [{"idx": 0, "job": "요리", "name": "조우현", "business": "플로라", "address": "경기도 고양시 덕양구 서오릉로 307-10", "menu": "파스타, 피자, 스테이크,카페,베이커리", "naver": "https://map.naver.com/p/entry/place/1860773989"}, {"idx": 1, "job": "요리", "name": "천덕상", "business": "갈비도락 서오릉점", "address": "경기도 고양시 덕양구 서오릉로 414 1, 2층", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/1020808981"}, {"idx": 2, "job": "제과·제빵", "name": "최형일", "business": "엘리제과자점 삼송점", "address": "경기도 고양시 덕양구 통일로 228-6", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1943728714"}, {"idx": 3, "job": "요리", "name": "왕철주", "business": "강강술래 늘봄점", "address": "경기도 고양시 덕양구 호국로 1526-3", "menu": "한우, 양념갈비, 한식 반찬, 간편조리식, F&B 상품 등", "naver": "https://map.naver.com/p/entry/place/20762152"}, {"idx": 4, "job": "요리", "name": "왕철주", "business": "카페 풍경으로", "address": "경기도 고양시 덕양구 호국로 1526-8", "menu": "한우, 양념갈비, 한식 반찬, 간편조리식, F&B 상품 등", "naver": "https://map.naver.com/p/entry/place/1357722500"}, {"idx": 5, "job": "요리", "name": "왕철주", "business": "고인돌 해장국", "address": "경기도 고양시 덕양구 호국로 1532 1층 고인돌해장국", "menu": "한우, 양념갈비, 한식 반찬, 간편조리식, F&B 상품 등", "naver": "https://map.naver.com/p/entry/place/1703674195"}, {"idx": 6, "job": "요리", "name": "조우현", "business": "우미대가왕쭈꾸미", "address": "경기도 고양시 덕양구서오릉로 307-8", "menu": "쭈꾸미, 불고기, 파스타, 피자", "naver": "https://map.naver.com/p/entry/place/36132825"}, {"idx": 7, "job": "요리", "name": "천덕상", "business": "훈장골 일산식사점", "address": "경기도 고양시 일산동구 고일로 10", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/38254902"}, {"idx": 8, "job": "요리", "name": "천덕상", "business": "갈비도락 탄현점", "address": "경기도 고양시 일산서구 탄현로 120", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/1295659115"}, {"idx": 9, "job": "제과·제빵", "name": "송영광", "business": "명장10 베이커리", "address": "경기도 고양시 일산서구 하이파크로 145 명장10 베이커리", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1241505459"}, {"idx": 10, "job": "제과·제빵", "name": "안창현", "business": "안스베이커리 일산점", "address": "경기도 고양시 일산서구 한류월드로 300 1100호", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1867022622"}, {"idx": 11, "job": "요리", "name": "천덕상", "business": "촌장골 광명점", "address": "경기도 광명시 소하로109번길 16", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/19932785"}, {"idx": 12, "job": "요리", "name": "천덕상", "business": "훈장골 광주점", "address": "경기도 광주시 태전동1길 7", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/2093420948"}, {"idx": 13, "job": "요리", "name": "천덕상", "business": "훈장골 김포점", "address": "경기도 김포시 김포한강2로23번길 78 2층", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/37374259"}, {"idx": 14, "job": "요리", "name": "천덕상", "business": "갈비도락 김포점", "address": "경기도 김포시 양촌읍 김포한강4로 295", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/1717634374"}, {"idx": 15, "job": "요리", "name": "천덕상", "business": "갈비도락 다산점", "address": "경기도 남양주시 진관로22번길 2 주건축물제1동", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/2095036634"}, {"idx": 16, "job": "제과·제빵", "name": "최형일", "business": "엘리제과자점", "address": "경기도 남양주시 호평로46번안길 5", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1775926888"}, {"idx": 17, "job": "제과·제빵", "name": "안창현", "business": "안스베이커리 롯데백화점 중동점", "address": "경기도 부천시 원미구 길주로 300 , B1층", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/36932337"}, {"idx": 18, "job": "제과·제빵", "name": "김영모", "business": "파네트리", "address": "경기도 성남시 수정구 설개로 14번길 23", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1774904834"}, {"idx": 19, "job": "제과·제빵", "name": "김영모", "business": "대한민국명장 김영모 다이닝테이블", "address": "경기도 성남시 수정구 설개로 14번길 25", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1899606932"}, {"idx": 20, "job": "요리", "name": "천덕상", "business": "훈장골 수원점", "address": "경기도 수원시 권선구 칠보로 146", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/34331505"}, {"idx": 21, "job": "제과·제빵", "name": "홍종흔", "business": "홍종흔베이커리 광교엘포트점", "address": "경기도 수원시 영통구 광교중앙로145, 1층", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1689568551"}, {"idx": 22, "job": "제과·제빵", "name": "서정웅", "business": "코른베르그 과자점 수원성빈센트병원점", "address": "경기도 수원시 팔달구 중부대로 93", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1611682539"}, {"idx": 23, "job": "요리", "name": "천덕상", "business": "훈장골 시흥은계점", "address": "경기도 시흥시 수인로3247번길 5 2층", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/1003139881"}, {"idx": 24, "job": "요리", "name": "천덕상", "business": "촌장골 안산점", "address": "경기도 안산시 상록구 성포동 593-26", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/18061207"}, {"idx": 25, "job": "요리", "name": "천덕상", "business": "훈장골안산성포점", "address": "경기도 안산시 상록구 예술광장1로 116", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/38758346"}, {"idx": 26, "job": "제과·제빵", "name": "안창현", "business": "안스베이커리 스타필드 안성점", "address": "경기도 안성시 공도읍 서동대로 3930-39 스타필드 안성점 1층", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1199339026"}, {"idx": 27, "job": "자동차정비", "name": "강금원", "business": "만안현대서비스㈜", "address": "경기도 안양시 박달로 473 만안현대서비스", "menu": "자동차 정비", "naver": "https://map.naver.com/p/entry/place/386376765"}, {"idx": 28, "job": "제과·제빵", "name": "홍종흔", "business": "골드헤겔-홍종흔베이커리", "address": "경기도 오산시 외삼미로 162-32", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1935884717"}, {"idx": 29, "job": "제과·제빵", "name": "안창현", "business": "안스베이커리 롯데프리미엄아울렛 기흥점", "address": "경기도 용인시 기흥구 신고매로 124 몰 B1F", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1734272020"}, {"idx": 30, "job": "요리", "name": "천덕상", "business": "갈비도락 용인상현점", "address": "경기도 용인시 수지구 수지로 62 1층", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/2087155896"}, {"idx": 31, "job": "제과·제빵", "name": "홍종흔", "business": "홍종흔베이커리 신봉외식타운점", "address": "경기도 용인시 수지구 신봉1로 344번길8,1동", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1148178110"}, {"idx": 32, "job": "요리", "name": "천덕상", "business": "훈장골 수지점", "address": "경기도 용인시 수지구 용구대로2771번길 89", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/1691947490"}, {"idx": 33, "job": "요리", "name": "천덕상", "business": "훈장골 파주점", "address": "경기도 파주시 동서대로 646", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/21587826"}, {"idx": 34, "job": "요리", "name": "천덕상", "business": "갈비도락 파주점", "address": "경기도 파주시 동패동 2111", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/2011363751"}, {"idx": 35, "job": "제과·제빵", "name": "인재홍", "business": "빵과당신", "address": "경기도 평택시 만세로1720-4", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1137171523"}, {"idx": 36, "job": "요리", "name": "천덕상", "business": "훈장골 평택점", "address": "경기도 평택시 비전3로 157 2층", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/1389483009"}, {"idx": 37, "job": "제과·제빵", "name": "인재홍", "business": "빵과당신 송탄점", "address": "경기도 평택시 추담로39", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1564719964"}, {"idx": 38, "job": "요리", "name": "천덕상", "business": "갈비도락 미사점", "address": "경기도 하남시 미사대로 584", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/36932172"}, {"idx": 39, "job": "제과·제빵", "name": "안창현", "business": "안스베이커리 스타필드 하남점", "address": "경기도 하남시 미사대로 750 L1층", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1111199693"}, {"idx": 40, "job": "요리", "name": "천덕상", "business": "훈장골 하남점", "address": "경기도 하남시 신평로 162", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/36174928"}, {"idx": 41, "job": "요리", "name": "천덕상", "business": "훈장골 동탄점", "address": "경기도 화성시 동탄장지천2길 27 2층", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/1622369130"}, {"idx": 42, "job": "요리", "name": "천덕상", "business": "훈장골 화성 마도점", "address": "경기도 화성시 만세구 마도면 화성로 803 1동 1~2층", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/1251824308"}, {"idx": 43, "job": "요리", "name": "천덕상", "business": "훈장골 화성향남점", "address": "경기도 화성시 향남읍 행정서로3길 9", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/37278426"}, {"idx": 44, "job": "요리", "name": "천덕상", "business": "훈장골 봉담점", "address": "경기도 화성시 효행구 봉담읍 동화역말길 73-1 훈장골", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/800083084"}, {"idx": 45, "job": "제과·제빵", "name": "김덕규", "business": "김덕규베이커리", "address": "경상남도 김해시 구지로 20, KDK빌딩", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1887697502"}, {"idx": 46, "job": "제과·제빵", "name": "김덕규", "business": "김덕규베이커리 장유부곡점", "address": "경상남도 김해시 장유로 270 한양쇼핑센터 1층 106호)", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1424608147"}, {"idx": 47, "job": "제과·제빵", "name": "김덕규", "business": "김덕규베이커리 롯데프리미엄아울렛 김해점", "address": "경상남도 김해시 장유로 469, 김덕규베이커리", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1319704253"}, {"idx": 48, "job": "제과·제빵", "name": "김덕규", "business": "김덕규베이커리 삼정점", "address": "경상남도 김해시 활천로 32, 호성상가 APT 1층)", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/15171502"}, {"idx": 49, "job": "제과·제빵", "name": "이석원", "business": "농부의 주말빵집, 농부의 경주명과", "address": "경상북도 경주시 탑리4길 6", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/2067804682"}, {"idx": 50, "job": "자동차정비", "name": "조행득", "business": "이동점블루핸즈", "address": "경상북도 포항시 남구 이동로20", "menu": "자동차 정비", "naver": "https://map.naver.com/p/entry/place/1624493827"}, {"idx": 51, "job": "제과·제빵", "name": "마옥천", "business": "㈜베비에르 봉선점", "address": "광주광역시 남구 봉선2로 12 (봉선동 627", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/33256111"}, {"idx": 52, "job": "제과·제빵", "name": "마옥천", "business": "㈜베비에르 롯데백화점 광주점", "address": "광주광역시 동구 독립로 268 (대인동 7-1, 롯데백화점 B1층)", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/38712366"}, {"idx": 53, "job": "제과·제빵", "name": "마옥천", "business": "㈜베비에르 문화전당점", "address": "광주광역시 동구 서석로 36, 1,2층 (광산동 81", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1478002793"}, {"idx": 54, "job": "제과·제빵", "name": "마옥천", "business": "㈜베비에르 롯데아울렛 광주월드컵점", "address": "광주광역시 서구 금화로 240, 1층 (풍암동 423-2 롯데아울렛 광주점)", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1123268563"}, {"idx": 55, "job": "요리", "name": "안유성", "business": "광주옥1947", "address": "광주광역시 서구 상무대로 1104-20", "menu": "냉면", "naver": "https://map.naver.com/p/entry/place/1115814959"}, {"idx": 56, "job": "요리", "name": "안유성", "business": "가매일식", "address": "광주광역시 서구 상무대로 1104-26", "menu": "일식당", "naver": "https://map.naver.com/p/entry/place/13570506"}, {"idx": 57, "job": "제과·제빵", "name": "마옥천", "business": "㈜베비에르", "address": "광주광역시 서구 풍암중앙로 37", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/19866734"}, {"idx": 58, "job": "자동차정비", "name": "최용식", "business": "현대모터스", "address": "대구광역시 수성구 달구벌대로 625길 10-12", "menu": "자동차 정비", "naver": "https://map.naver.com/p/entry/place/32055712"}, {"idx": 59, "job": "제과·제빵", "name": "김덕규", "business": "토북베이커리", "address": "부산광역시 강서구 낙동남로 526", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1862730136"}, {"idx": 60, "job": "제과·제빵", "name": "이흥용", "business": "LAB 이흥용과자점 두실점", "address": "부산광역시 금정구 금단로80", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/2043109760"}, {"idx": 61, "job": "제과·제빵", "name": "이흥용", "business": "금정사계", "address": "부산광역시 금정구 금샘로379", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1304494364"}, {"idx": 62, "job": "제과·제빵", "name": "이흥용", "business": "이흥용과자점 부산대직영점", "address": "부산광역시 금정구 부산대학로63번길 30", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1584126913"}, {"idx": 63, "job": "요리", "name": "강현우", "business": "강명장요리가", "address": "부산광역시 금정구 수림로 20번길 36, 주 1동 1층 109호", "menu": "초밥 & 숙성회 등", "naver": "https://map.naver.com/p/entry/place/1151134572"}, {"idx": 64, "job": "제과·제빵", "name": "이흥용", "business": "칠암사계", "address": "부산광역시 기장군 일광읍 칠암1길 7-10", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1101934691"}, {"idx": 65, "job": "제과·제빵", "name": "이흥용", "business": "이흥용과자점 문현직영점", "address": "부산광역시 남구 수영로39번길 2-1", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/16592504"}, {"idx": 66, "job": "제과·제빵", "name": "이흥용", "business": "이흥용과자점 수영직영점", "address": "부산광역시 수영구 좌수영로131-9", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1730047095"}, {"idx": 67, "job": "제과·제빵", "name": "이흥용", "business": "이흥용과자점 사직직영점", "address": "부산광역시 연제구 아시아드대로90", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/20455937"}, {"idx": 68, "job": "제과·제빵", "name": "이흥용", "business": "이흥용과자점 신세계백화점센텀시티점", "address": "부산광역시 해운대구 센텀남대로35,지하1층(신세계백화점 센텀시티점)", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/36692228"}, {"idx": 69, "job": "제과·제빵", "name": "김영모", "business": "김영모과자점 대치점", "address": "서울특별시 강남구 남부순환로 2927(대치동, 대치 클래시아) 108호", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/37871358"}, {"idx": 70, "job": "요리", "name": "왕철주", "business": "강강술래 역삼점", "address": "서울특별시 강남구 논현로 325 강강술래역삼점", "menu": "한우, 양념갈비, 한식 반찬, 간편조리식, F&B 상품 등", "naver": "https://map.naver.com/p/entry/place/11589288"}, {"idx": 71, "job": "요리", "name": "왕철주", "business": "강강술래 청담점", "address": "서울특별시 강남구 도산대로 535 용강빌딩", "menu": "한우, 양념갈비, 한식 반찬, 간편조리식, F&B 상품 등", "naver": "https://map.naver.com/p/entry/place/20766863"}, {"idx": 72, "job": "제과·제빵", "name": "김영모", "business": "김영모과자점 강남구청점", "address": "서울특별시 강남구 선릉로 126길 6 (삼성동) 1층", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/449478032"}, {"idx": 73, "job": "제과·제빵", "name": "김영모", "business": "김영모과자점 도곡타워점", "address": "서울특별시 강남구 언주로30길 10 (도곡동, 현대비전21상가) 1층", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/12447840"}, {"idx": 74, "job": "제과·제빵", "name": "김영모", "business": "페르에피스", "address": "서울특별시 강남구 언주로30길 10(도곡동, 현대비전21상가) 1층", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/13573782"}, {"idx": 75, "job": "요리", "name": "왕철주", "business": "강강술래 강동역점", "address": "서울특별시 강동구 천호대로 1117", "menu": "한우, 양념갈비, 한식 반찬, 간편조리식, F&B 상품 등", "naver": "https://map.naver.com/p/entry/place/2001016426"}, {"idx": 76, "job": "요리", "name": "천덕상", "business": "훈장골 발산점", "address": "서울특별시 강서구 공항대로36길 9", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/35125119"}, {"idx": 77, "job": "제과·제빵", "name": "안창현", "business": "안스베이커리 롯데백화점 김포공항점", "address": "서울특별시 강서구 하늘길 77 롯데백화점 김포공항점 GF", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/32572285"}, {"idx": 78, "job": "요리", "name": "왕철주", "business": "강강술래 신림점", "address": "서울특별시 관악구 신림동 10-518", "menu": "한우, 양념갈비, 한식 반찬, 간편조리식, F&B 상품 등", "naver": "https://map.naver.com/p/entry/place/11718658"}, {"idx": 79, "job": "요리", "name": "천덕상", "business": "갈비도락 구로항동점", "address": "서울특별시 구로구 서해안로 2070 2층, 3층", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/2097369262"}, {"idx": 80, "job": "요리", "name": "왕철주", "business": "강강술래 시흥점", "address": "서울특별시 금천구 시흥대로 193 아람아이씨티타워 1층,2층", "menu": "한우, 양념갈비, 한식 반찬, 간편조리식, F&B 상품 등", "naver": "https://map.naver.com/p/entry/place/13021554"}, {"idx": 81, "job": "제과·제빵", "name": "최형일", "business": "엘리제과자점 마들점", "address": "서울특별시 노원구 동일로 1550, 109호 (고려프라자)", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/13151303"}, {"idx": 82, "job": "요리", "name": "왕철주", "business": "강강술래 상계점", "address": "서울특별시 노원구 동일로 1628 상계동강강술래", "menu": "한우, 양념갈비, 한식 반찬, 간편조리식, F&B 상품 등", "naver": "https://map.naver.com/p/entry/place/11613262"}, {"idx": 83, "job": "제과·제빵", "name": "함상훈", "business": "함스브로트 과자점", "address": "서울특별시 도봉구 도봉로 483", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/17999136"}, {"idx": 84, "job": "요리", "name": "왕철주", "business": "강강술래 홍대점", "address": "서울특별시 마포구 잔다리로6길 25 재륜빌딩", "menu": "한우, 양념갈비, 한식 반찬, 간편조리식, F&B 상품 등", "naver": "https://map.naver.com/p/entry/place/31063461"}, {"idx": 85, "job": "제과·제빵", "name": "김영모", "business": "김영모과자점 서초성당점", "address": "서울특별시 서초구 서초대로 64길 41-4 (서초동) 1층", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/19886404"}, {"idx": 86, "job": "제과·제빵", "name": "김영모", "business": "김영모과자점 반포점", "address": "서울특별시 서초구 신반포로 100(반포동, 반포래미안퍼스티지아파트 상가) 111호", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/18293979"}, {"idx": 87, "job": "제과·제빵", "name": "김영모", "business": "김영모과자점 서초그랑자이점", "address": "서울특별시 서초구 효령로 403 (서초동, 서초 그랑몰) 102호", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1087115109"}, {"idx": 88, "job": "요리", "name": "왕철주", "business": "강강술래 잠실점", "address": "서울특별시 송파구 잠실동 40-1, 롯데백화점 지하 1층", "menu": "한우, 양념갈비, 한식 반찬, 간편조리식, F&B 상품 등", "naver": "https://map.naver.com/p/entry/place/1255008750"}, {"idx": 89, "job": "제과·제빵", "name": "서정웅", "business": "코른베르그 과자점", "address": "서울특별시 송파구 중대로 24", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/19877351"}, {"idx": 90, "job": "제과·제빵", "name": "안창현", "business": "안스베이커리 롯데백화점 영등포점", "address": "서울특별시 영등포구 경인로 846 지하 1층", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/35563006"}, {"idx": 91, "job": "요리", "name": "왕철주", "business": "강강술래 당산점", "address": "서울특별시 영등포구 선유로 251 2층", "menu": "한우, 양념갈비, 한식 반찬, 간편조리식, F&B 상품 등", "naver": "https://map.naver.com/p/entry/place/1825823290"}, {"idx": 92, "job": "요리", "name": "천덕상", "business": "훈장골영등포점", "address": "서울특별시 영등포구 신길동 192-188", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/954438010"}, {"idx": 93, "job": "요리", "name": "박효남", "business": "콩두50 (CONGDU50)", "address": "서울특별시 영등포구 여의대로 24, FKI 타워 50층 콩두50", "menu": "한식", "naver": "https://map.naver.com/p/entry/place/2079825487"}, {"idx": 94, "job": "제과·제빵", "name": "안창현", "business": "안스베이커리 롯데몰 은평점", "address": "서울특별시 은평구 통일로 1050 롯데몰 은평점 1층", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/875446252"}, {"idx": 95, "job": "요리", "name": "김송기", "business": "㈜호텔롯데", "address": "서울특별시 중구 을지로 30", "menu": "호텔업 ( 레스토랑, 연회 등)", "naver": "https://map.naver.com/p/entry/place/11583194"}, {"idx": 96, "job": "제과·제빵", "name": "이석원", "business": "랑콩뜨레 달동점", "address": "울산광역시 남구 도산로 101번길 4-2, 1~3층", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1563625884"}, {"idx": 97, "job": "제과·제빵", "name": "이석원", "business": "랑콩뜨레 현대백화점 울산점", "address": "울산광역시 남구 삼산로 261 현대백화점 B1", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/899780715"}, {"idx": 98, "job": "제과·제빵", "name": "이석원", "business": "랑콩뜨레 현대백화점 울산동구점", "address": "울산광역시 동구 방어진 899 현대백화점 B1", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1048968544"}, {"idx": 99, "job": "제과·제빵", "name": "이석원", "business": "랑콩뜨레", "address": "울산광역시 북구 박상진6로 7, 1~4층", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1074313676"}, {"idx": 100, "job": "제과·제빵", "name": "이석원", "business": "랑콩뜨레 울산구영점", "address": "울산광역시 울주군 범서읍 점촌3길 5", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/35570697"}, {"idx": 101, "job": "요리", "name": "서정희", "business": "서생이화", "address": "울산광역시 울주군 서생면 용연길 160", "menu": "울주 서생 특산물인 배를 활용한 특별한 한정식", "naver": "https://map.naver.com/p/entry/place/2050302398"}, {"idx": 102, "job": "요리", "name": "천덕상", "business": "훈장골 계양점", "address": "인천광역시 계양구 오조산로 15", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/35772707"}, {"idx": 103, "job": "요리", "name": "천덕상", "business": "훈장골 논현점", "address": "인천광역시 남동구 논현로 16 1, 2, 3층 훈장골", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/31141124"}, {"idx": 104, "job": "제과·제빵", "name": "안창현", "business": "안스베이커리", "address": "인천광역시 남동구 인주대로 664 안스베이커리", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/11851611"}, {"idx": 105, "job": "제과·제빵", "name": "안창현", "business": "안스베이커리 앨리웨이 인천점", "address": "인천광역시 미추홀구 숙골로87번길 5 인천광역시 앨리웨이 라이프동 1층", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1824965948"}, {"idx": 106, "job": "요리", "name": "천덕상", "business": "촌장골 당하점", "address": "인천광역시 서구 당하동925-7", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/20714820"}, {"idx": 107, "job": "요리", "name": "천덕상", "business": "촌장골 서구청점", "address": "인천광역시 서구 심곡동 280-2번지", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/16687511"}, {"idx": 108, "job": "제과·제빵", "name": "안창현", "business": "안스베이커리 송도점", "address": "인천광역시 연수구 센트럴로 160", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/37170365"}, {"idx": 109, "job": "제과·제빵", "name": "안창현", "business": "안스베이커리 연수점", "address": "인천광역시 연수구 청명로3번길 1", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/33199474"}, {"idx": 110, "job": "제과·제빵", "name": "마옥천", "business": "㈜베비에르 LF스퀘어 광양점", "address": "전라남도 광양시 광양읍 순광로 466, LF스퀘어 1층 (덕례리 18", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1221824674"}, {"idx": 111, "job": "제과·제빵", "name": "마옥천", "business": "㈜베비에르 담양점", "address": "전라남도 담양군 담양읍 죽향대로 1300 (남산리 206", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1448218849"}, {"idx": 112, "job": "제과·제빵", "name": "마옥천", "business": "㈜베비에르 롯데아울렛 남악점", "address": "전라남도 무안군 삼향읍 남악로162번길 80, 1층 (남악리 26", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1360815074"}, {"idx": 113, "job": "제과·제빵", "name": "마옥천", "business": "㈜베비에르 르꼬뮤네", "address": "전라남도 순천시 왕지동 423-2", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1872690809"}, {"idx": 114, "job": "제과·제빵", "name": "마옥천", "business": "㈜베비에르 롯데백화점 전주점", "address": "전라북도 전주시 완산구 온고을로 2, 지하 1층 (서신동 9", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/1026084001"}, {"idx": 115, "job": "요리", "name": "천덕상", "business": "훈장골 아산점", "address": "충청남도 아산시 탕정면 이순신대로 745", "menu": "양념갈비, 함흥냉면", "naver": "https://map.naver.com/p/entry/place/2036885143"}, {"idx": 116, "job": "제과·제빵", "name": "홍종흔", "business": "홍종흔베이커리 천안점", "address": "충청남도 천안시 동남구 유량로240-1", "menu": "베이커리", "naver": "https://map.naver.com/p/entry/place/2003870379"}, {"idx": 117, "job": "요리", "name": "남대현", "business": "대한민국명장국밥", "address": "충청북도 청주시 청원구 오창읍 중심상업로 52-5", "menu": "소고기 국밥, 돼지국밥 등", "naver": "https://map.naver.com/p/entry/place/1685260256"}];
-
-const WORK_TYPE_OPTIONS = [
-  {
-    value: "resident",
-    label: "상시근무",
-    desc: "제가 대표이거나 이 사업장에 상시 근무하고 있습니다 (직접 만날 수 있음)"
-  },
-  {
-    value: "owner_nonresident",
-    label: "비상시 방문",
-    desc: "제 소유이지만 상시 근무하지는 않습니다 (비정기 방문)"
-  },
-  {
-    value: "franchise",
-    label: "가맹점",
-    desc: "제 브랜드/기술을 사용하는 가맹점입니다 (가맹점주가 별도 운영)"
-  },
-  {
-    value: "advisor",
-    label: "기술자문",
-    desc: "기술자문 관계로 이름만 올라가 있고, 실질적 운영과는 무관합니다"
-  },
-  {
-    value: "other",
-    label: "기타",
-    desc: "위 항목에 해당하지 않습니다 (아래 메모에 적어주세요)"
-  }
+const RELATION_OPTIONS = [
+  {value:"direct",label:"명장 직접 소유·운영 사업장",desc:"제가 직접 소유하거나 대표·운영자로서 실질적으로 운영하는 사업장입니다."},
+  {value:"brand",label:"명장기술 적용 사업장",desc:"제가 대표 또는 운영 주체인 브랜드의 공식 직영점·가맹점으로, 제 기술·레시피·품질관리 기준을 적용합니다."},
+  {value:"advice",label:"기술전수·자문·레시피 사용 사업장",desc:"기술전수, 자문, 교육 또는 레시피 제공 관계가 있으나 제가 직접 운영하는 사업장은 아닙니다."},
+  {value:"other",label:"기타",desc:"위 항목으로 설명하기 어렵습니다. 아래 입력란에 관계를 직접 작성해주세요."},
+  {value:"remove",label:"등재 대상 아님",desc:"현재 대한민국 명장지도에 표시하면 안 되는 사업장입니다."}
 ];
 
-const answers = {};
+const cfg=window.APP_CONFIG||{};
+const client=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY);
+const token=new URLSearchParams(location.search).get("token")||"";
+let personName="";
+let rows=[];
+const answers={};
 
-function getParam(key) {
-  const params = new URLSearchParams(window.location.search);
-  return params.get(key) || "";
-}
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+function jobEmoji(job){if(job.includes("제과")||job.includes("제빵"))return"🍰";if(job.includes("요리"))return"👨‍🍳";if(job.includes("자동차"))return"🚗";return"🏆"}
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("visible");setTimeout(()=>t.classList.remove("visible"),2400)}
 
-function jobEmoji(job) {
-  if (job.includes("제과") || job.includes("제빵")) return "🍰";
-  if (job.includes("요리")) return "👨‍🍳";
-  if (job.includes("자동차")) return "🚗";
-  return "🏆";
-}
-
-function buildNamePicker() {
-  const select = document.getElementById("nameSelect");
-  const names = [...new Set(DATA.map(row => row.name))].sort((a, b) => a.localeCompare(b, "ko"));
-
-  names.forEach(name => {
-    const option = document.createElement("option");
-    option.value = name;
-    option.textContent = name;
-    select.appendChild(option);
-  });
-
-  select.addEventListener("change", () => {
-    renderForName(select.value);
-  });
-}
-
-function updateProgress() {
-  const total = Object.keys(answers).length;
-  const done = Object.values(answers).filter(a => a.workType).length;
-  const progressText = document.getElementById("progressText");
-  const submitBar = document.getElementById("submitBar");
-
-  if (total === 0) {
-    submitBar.style.display = "none";
+async function loadSurvey(){
+  if(!token){
+    document.getElementById("content").innerHTML='<div class="panel state">접근 정보가 없는 주소입니다.<br>담당자가 전달한 개인별 링크로 접속해주세요.</div>';
     return;
   }
-
-  submitBar.style.display = "flex";
-  progressText.textContent = `${done} / ${total} 항목 체크됨`;
+  try{
+    const {data,error}=await client.rpc("get_master_survey",{p_token:token});
+    if(error)throw error;
+    personName=data.name;
+    rows=data.businesses||[];
+    render();
+  }catch(e){
+    console.error(e);
+    document.getElementById("content").innerHTML='<div class="panel state">유효하지 않거나 만료된 링크입니다.<br>담당자에게 개인별 링크를 다시 요청해주세요.</div>';
+  }
 }
 
-function renderForName(name) {
-  const content = document.getElementById("content");
-  content.innerHTML = "";
+function render(){
+  const content=document.getElementById("content");
+  content.innerHTML=`<div class="panel greeting"><h2>${esc(personName)} 명장님, 안녕하세요.</h2>
+  <p>아래 ${rows.length}개 사업장별 관계를 확인해주세요. 저장 후 같은 링크로 다시 접속하면 수정할 수 있습니다.</p></div>`;
 
-  for (const key in answers) {
-    delete answers[key];
-  }
+  rows.forEach(row=>{
+    answers[row.idx]={
+      relationType:row.relationType||"",
+      relationLabel:row.relationLabel||"",
+      otherText:row.otherText||"",
+      representative:!!row.representative,
+      consent:!!row.consent,
+      note:row.note||""
+    };
+    const a=answers[row.idx];
+    const card=document.createElement("div");
+    card.className="biz-card"+(a.relationType?" answered":"");
+    const options=RELATION_OPTIONS.map(opt=>`<label class="option-item ${a.relationType===opt.value?"checked":""}" data-value="${opt.value}">
+      <input type="radio" name="relation-${row.idx}" value="${opt.value}" ${a.relationType===opt.value?"checked":""}>
+      <span><strong>${opt.label}</strong><span class="desc">${opt.desc}</span></span></label>`).join("");
 
-  if (!name) {
-    updateProgress();
-    return;
-  }
+    card.innerHTML=`<div class="biz-title">${jobEmoji(row.job)} ${esc(row.business)}</div>
+      <div class="biz-sub">${esc(row.job)} · 대표품목: ${esc(row.menu||"-")}</div>
+      <div class="biz-address">📍 ${esc(row.address)}</div>
+      ${row.naver?`<a class="biz-link" href="${esc(row.naver)}" target="_blank" rel="noopener">네이버플레이스에서 확인 ↗</a>`:""}
+      <div class="question-title">이 사업장과 명장님의 관계는 무엇입니까?</div>
+      <div class="option-list">${options}</div>
+      <div class="extra-field ${a.relationType==="other"?"visible":""}" data-other-wrap>
+        <input type="text" data-other placeholder="기타 관계를 직접 작성해주세요" value="${esc(a.otherText)}">
+      </div>
+      <label class="representative-box"><input type="checkbox" data-representative ${a.representative?"checked":""}> 이 사업장을 대표 사업장으로 소개하는 데 동의합니다.</label>
+      <label class="consent-box"><input type="checkbox" data-consent ${a.consent?"checked":""}> 위 정보를 대한민국 명장지도 시범서비스에 공개하는 데 동의합니다.</label>
+      <details class="note-field"><summary>주소·대표품목·링크 수정 또는 추가 의견</summary>
+      <textarea data-note placeholder="예: 주소 변경, 폐업, 지점명 변경 등">${esc(a.note)}</textarea></details>`;
 
-  const rows = DATA.filter(row => row.name === name);
-
-  if (rows.length === 0) {
-    content.innerHTML = `<div class="empty-state">해당 성함으로 등록된 사업장을 찾을 수 없습니다.</div>`;
-    updateProgress();
-    return;
-  }
-
-  const greeting = document.createElement("div");
-  greeting.className = "greeting";
-  greeting.innerHTML = `
-    <h2>${name} 명장님, 안녕하세요.</h2>
-    <p>아래 ${rows.length}개 사업장이 확인됩니다. 각 사업장마다 해당하는 근무 형태를 하나씩 선택해주세요.</p>
-  `;
-  content.appendChild(greeting);
-
-  rows.forEach(row => {
-    answers[row.idx] = { workType: "", note: "" };
-
-    const card = document.createElement("div");
-    card.className = "biz-card";
-    card.dataset.idx = row.idx;
-
-    const optionsHtml = WORK_TYPE_OPTIONS.map(opt => `
-      <label class="option-item" data-value="${opt.value}">
-        <input type="radio" name="work-${row.idx}" value="${opt.value}">
-        <span>
-          <strong>${opt.label}</strong>
-          <span class="desc">${opt.desc}</span>
-        </span>
-      </label>
-    `).join("");
-
-    card.innerHTML = `
-      <div class="biz-title">${jobEmoji(row.job)} ${row.business}</div>
-      <div class="biz-sub">${row.job} · 대표품목: ${row.menu || "-"}</div>
-      <div class="biz-address">📍 ${row.address}</div>
-      <a class="biz-link" href="${row.naver}" target="_blank" rel="noopener">네이버플레이스에서 확인 ↗</a>
-      <div class="option-list">${optionsHtml}</div>
-      <details class="note-field">
-        <summary>주소/대표품목/링크가 틀렸거나 남기고 싶은 말이 있으면 눌러주세요</summary>
-        <textarea placeholder="예: 주소가 변경되었습니다. 새 주소는 ..." data-idx="${row.idx}"></textarea>
-      </details>
-    `;
-
-    card.querySelectorAll(`input[name="work-${row.idx}"]`).forEach(input => {
-      input.addEventListener("change", () => {
-        answers[row.idx].workType = input.value;
-
-        card.querySelectorAll(".option-item").forEach(item => {
-          item.classList.toggle("checked", item.dataset.value === input.value);
-        });
-
-        card.classList.add("answered");
-        updateProgress();
+    card.querySelectorAll(`input[name="relation-${row.idx}"]`).forEach(input=>{
+      input.addEventListener("change",()=>{
+        const opt=RELATION_OPTIONS.find(o=>o.value===input.value);
+        a.relationType=input.value;a.relationLabel=opt?.label||"";
+        card.querySelectorAll(".option-item").forEach(i=>i.classList.toggle("checked",i.dataset.value===input.value));
+        card.querySelector("[data-other-wrap]").classList.toggle("visible",input.value==="other");
+        card.classList.add("answered");updateProgress();
       });
     });
-
-    const textarea = card.querySelector("textarea");
-    textarea.addEventListener("input", () => {
-      answers[row.idx].note = textarea.value;
-    });
-
+    card.querySelector("[data-other]").addEventListener("input",e=>a.otherText=e.target.value);
+    card.querySelector("[data-representative]").addEventListener("change",e=>a.representative=e.target.checked);
+    card.querySelector("[data-consent]").addEventListener("change",e=>a.consent=e.target.checked);
+    card.querySelector("[data-note]").addEventListener("input",e=>a.note=e.target.value);
     content.appendChild(card);
   });
-
+  document.getElementById("submitBar").style.display="flex";
   updateProgress();
 }
 
-function buildResultText() {
-  const name = document.getElementById("nameSelect").value;
-  const lines = [];
+function updateProgress(){
+  const all=Object.values(answers);
+  document.getElementById("progressText").textContent=`${all.filter(a=>a.relationType).length} / ${all.length} 항목 선택됨`;
+}
 
-  lines.push(`[대한민국 명장지도] 사업장 정보 확인 결과`);
-  lines.push(`성함: ${name}`);
-  lines.push("");
+function payload(){
+  return rows.map(row=>({idx:row.idx,...answers[row.idx]}));
+}
 
-  DATA.filter(row => row.name === name).forEach(row => {
-    const answer = answers[row.idx] || {};
-    const optionLabel = WORK_TYPE_OPTIONS.find(opt => opt.value === answer.workType);
-
+function resultText(){
+  const lines=["[대한민국 명장지도] 사업장 관계 확인 결과",`성함: ${personName}`,""];
+  rows.forEach(row=>{
+    const a=answers[row.idx];
     lines.push(`- 사업장: ${row.business}`);
-    lines.push(`  근무형태: ${optionLabel ? optionLabel.label : "(미선택)"}`);
-
-    if (answer.note) {
-      lines.push(`  메모: ${answer.note}`);
-    }
-
+    lines.push(`  관계: ${a.relationLabel||"(미선택)"}`);
+    if(a.otherText)lines.push(`  기타: ${a.otherText}`);
+    lines.push(`  대표 사업장: ${a.representative?"예":"아니오"}`);
+    lines.push(`  공개 동의: ${a.consent?"동의":"미동의"}`);
+    if(a.note)lines.push(`  메모: ${a.note}`);
     lines.push("");
   });
-
   return lines.join("\n");
 }
 
-function showToast(message) {
-  const toast = document.getElementById("toast");
-  toast.textContent = message;
-  toast.classList.add("visible");
-  setTimeout(() => toast.classList.remove("visible"), 2200);
-}
+document.getElementById("copyBtn").onclick=async()=>{
+  try{await navigator.clipboard.writeText(resultText());toast("결과가 복사되었습니다.")}
+  catch(e){toast("복사에 실패했습니다.")}
+};
 
-document.getElementById("copyBtn").addEventListener("click", async () => {
-  const text = buildResultText();
+document.getElementById("submitBtn").onclick=async()=>{
+  const missing=Object.values(answers).filter(a=>!a.relationType).length;
+  if(missing&&!confirm(`미선택 사업장이 ${missing}곳 있습니다. 그대로 저장할까요?`))return;
+  if(Object.values(answers).some(a=>a.relationType==="other"&&!a.otherText.trim())){toast("기타 관계를 작성해주세요.");return}
+  const btn=document.getElementById("submitBtn");btn.disabled=true;btn.textContent="저장 중...";
+  try{
+    const {error}=await client.rpc("save_master_survey",{p_token:token,p_answers:payload()});
+    if(error)throw error;
+    toast("저장되었습니다. 같은 링크에서 다시 수정할 수 있습니다.");
+  }catch(e){console.error(e);toast("저장 중 오류가 발생했습니다.")}
+  finally{btn.disabled=false;btn.textContent="저장하기"}
+};
 
-  try {
-    await navigator.clipboard.writeText(text);
-    showToast("결과가 복사되었습니다. 카카오톡 등으로 붙여넣어 전달해주세요.");
-  } catch (e) {
-    showToast("복사에 실패했습니다. 화면을 캡처해서 전달해주세요.");
-  }
-});
-
-document.getElementById("emailBtn").addEventListener("click", () => {
-  const name = document.getElementById("nameSelect").value;
-  const subject = encodeURIComponent(`[명장지도] ${name} 사업장 정보 확인 결과`);
-  const body = encodeURIComponent(buildResultText());
-  window.location.href = `mailto:?subject=${subject}&body=${body}`;
-});
-
-buildNamePicker();
-
-const presetName = getParam("name");
-
-if (presetName) {
-  const select = document.getElementById("nameSelect");
-  select.value = presetName;
-
-  if (select.value === presetName) {
-    document.getElementById("namePicker").style.display = "none";
-    renderForName(presetName);
-  }
-}
+loadSurvey();
 </script>
-
 </body>
 </html>
