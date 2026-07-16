@@ -64,7 +64,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
   <div class="panel" id="globalConsentPanel" style="display:none">
     <label class="consent-box">
       <input type="checkbox" id="globalConsent">
-      위 정보를 대한민국명장 사업장 지도 서비스에 공개하는것을 동의합니다.
+      위 정보를 대한민국명장 사업장 지도 시범서비스에 공개하는 데 동의합니다.
     </label>
     <div class="validation-message" id="globalConsentMessage">
       ⚠ 정보 공개 동의가 필요합니다.
@@ -84,8 +84,8 @@ const RELATION_OPTIONS = [
   {value:"direct",label:"직접 소유·운영 사업장",desc:"대한민국명장 본인이 직접 소유하거나 대표·운영자로서 실질적으로 운영하거나 소속되어 근무하는 사업장."},
   {value:"brand",label:"기술 적용 사업장",desc:"대한민국명장 본인이 대표 또는 운영 주체인 브랜드의 공식 가맹점으로, 대한민국명장의 기술·레시피·품질관리 기준을 적용합니다. 예시: 체인점, 가맹점"},
   {value:"advice",label:"기술전수·자문·레시피 사용 사업장",desc:"기술전수,자문,고문,교육 또는 레시피 제공 관계가 있으나 직접 운영하는 사업장은 아닙니다."},
-  {value:"other",label:"기타",desc:"위 항목으로 설명하기 어렵습니다. 아래 입력란에 관계를 직접 작성해주세요."},
-  {value:"remove",label:"등재 대상 아님",desc:"현재 대한민국명장 사업장 지도에 표시하면 안 되는 사업장입니다."}
+  {value:"other",label:"기타",desc:"위 항목으로 설명하기 어려운 경우 아래 입력란에 관계를 직접 작성"},
+  {value:"remove",label:"등재 대상 아님",desc:"현재 대한민국명장 사업장 지도에 표시하지 않기 바라는 사업장입니다."}
 ];
 
 const cfg=window.APP_CONFIG||{};
@@ -156,16 +156,17 @@ function render(){
       input.addEventListener("change",()=>{
         const opt=RELATION_OPTIONS.find(o=>o.value===input.value);
         a.relationType=input.value;a.relationLabel=opt?.label||"";
-        const representativeCheckbox =
-  card.querySelector("[data-representative]");
 
-if(input.value === "remove"){
-  a.representative = false;
-  representativeCheckbox.checked = false;
-  representativeCheckbox.disabled = true;
-} else {
-  representativeCheckbox.disabled = false;
-}
+        const representativeCheckbox=card.querySelector("[data-representative]");
+
+        if(input.value==="remove"){
+          a.representative=false;
+          representativeCheckbox.checked=false;
+          representativeCheckbox.disabled=true;
+        }else{
+          representativeCheckbox.disabled=false;
+        }
+
         card.querySelectorAll(".option-item").forEach(i=>i.classList.toggle("checked",i.dataset.value===input.value));
         card.querySelector("[data-other-wrap]").classList.toggle("visible",input.value==="other");
         card.classList.add("answered");
@@ -173,6 +174,14 @@ if(input.value === "remove"){
         updateProgress();
       });
     });
+    const representativeCheckbox=card.querySelector("[data-representative]");
+
+    if(a.relationType==="remove"){
+      a.representative=false;
+      representativeCheckbox.checked=false;
+      representativeCheckbox.disabled=true;
+    }
+
     card.querySelector("[data-other]").addEventListener("input",e=>{
       a.otherText=e.target.value;
       if(a.relationType==="other" && a.otherText.trim()){
@@ -240,6 +249,24 @@ function validateBeforeSave(){
       card.querySelector("[data-other-wrap]").classList.add("visible");
       setTimeout(()=>input?.focus(),450);
       toast("기타 관계 내용을 작성해주세요.");
+      return false;
+    }
+  }
+
+  for(const row of rows){
+    const a=answers[row.idx];
+
+    if(a.relationType==="remove" && a.representative){
+      const card=[...document.querySelectorAll(".biz-card")].find(c=>
+        !!c.querySelector(`input[name="relation-${row.idx}"]`)
+      );
+
+      showCardValidation(
+        card,
+        "등재 대상이 아닌 사업장은 대표 사업장으로 지정할 수 없습니다."
+      );
+
+      toast("대표 사업장 체크를 해제해주세요.");
       return false;
     }
   }
