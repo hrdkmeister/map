@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>대한민국 명장지도 설문 관리자</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", Arial, sans-serif;
+  background: #eef3f8;
+  color: #172033;
+}
+
+header {
+  padding: 22px 28px;
+  background: linear-gradient(135deg, #0437ab, #002d70);
+  color: white;
+}
+
+header h1 {
+  margin: 0 0 6px;
+  font-size: 23px;
+}
+
+header p {
+  margin: 0;
+  color: #dce8f5;
+  font-size: 13px;
+}
+
+.wrap {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 22px;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 6px 18px rgba(20, 35, 60, 0.08);
+  margin-bottom: 16px;
+}
+
+.login-card {
+  max-width: 460px;
+  margin: 60px auto;
+}
+
+.login-card h2 {
+  margin: 0 0 8px;
+}
+
+.login-card p {
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.field {
+  margin-top: 12px;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: 1px solid #cdd6e2;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+button {
+  border: none;
+  cursor: pointer;
+  font-weight: 800;
+  border-radius: 10px;
+  padding: 10px 15px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.btn-primary {
+  background: #0437ab;
+  color: white;
+}
+
+.btn-secondary {
+  background: #e8eef5;
+  color: #20304a;
+}
+
+.btn-danger {
+  background: #b42318;
+  color: white;
+}
+
+.login-button {
+  width: 100%;
+  margin-top: 16px;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 180px 180px auto auto auto;
+  gap: 9px;
+  align-items: center;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.summary-box {
+  padding: 15px;
+  border-radius: 13px;
+  background: #f7f9fc;
+  border: 1px solid #e1e8f0;
+}
+
+.summary-box span {
+  display: block;
+  color: #667085;
+  font-size: 12px;
+}
+
+.summary-box strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 26px;
+}
+
+.user-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.user-email {
+  font-size: 13px;
+  color: #667085;
+}
+
+.status {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #667085;
+}
+
+.table-wrap {
+  overflow: auto;
+  max-height: calc(100vh - 370px);
+  min-height: 360px;
+  border: 1px solid #dde4ed;
+  border-radius: 13px;
+}
+
+table {
+  width: 100%;
+  min-width: 1550px;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 10px 11px;
+  border-bottom: 1px solid #e6ebf1;
+  text-align: left;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #123b70;
+  color: white;
+}
+
+tbody tr:hover {
+  background: #f4f8fd;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.badge-direct {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-brand {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.badge-advice {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge-other {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.badge-remove {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.badge-empty {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+.yes {
+  color: #067647;
+  font-weight: 900;
+}
+
+.no {
+  color: #98a2b3;
+}
+
+.message {
+  margin-top: 12px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  display: none;
+}
+
+.message.error {
+  display: block;
+  background: #fee4e2;
+  color: #b42318;
+}
+
+.message.success {
+  display: block;
+  background: #dcfae6;
+  color: #067647;
+}
+
+@media (max-width: 1000px) {
+  .toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .wrap {
+    padding: 14px;
+  }
+}
+
+@media (max-width: 600px) {
+  .toolbar,
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .user-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>대한민국 명장지도 설문 관리자</h1>
+  <p>사업장 관계 응답 조회 · 검색 · CSV 다운로드</p>
+</header>
+
+<div class="wrap">
+
+  <section id="loginSection" class="card login-card">
+    <h2>관리자 로그인</h2>
+    <p>
+      Supabase Authentication에 등록한 관리자 이메일과 비밀번호로 로그인하세요.
+    </p>
+
+    <div class="field">
+      <label for="emailInput">이메일</label>
+      <input id="emailInput" type="email" autocomplete="username" placeholder="관리자 이메일">
+    </div>
+
+    <div class="field">
+      <label for="passwordInput">비밀번호</label>
+      <input id="passwordInput" type="password" autocomplete="current-password" placeholder="비밀번호">
+    </div>
+
+    <button id="loginButton" class="btn-primary login-button" type="button">
+      로그인
+    </button>
+
+    <div id="loginMessage" class="message"></div>
+  </section>
+
+  <section id="adminSection" class="hidden">
+
+    <div class="card user-row">
+      <div>
+        <strong>관리자 접속 중</strong>
+        <div id="userEmail" class="user-email"></div>
+      </div>
+
+      <button id="logoutButton" class="btn-secondary" type="button">
+        로그아웃
+      </button>
+    </div>
+
+    <div class="card summary-grid">
+      <div class="summary-box">
+        <span>저장 응답</span>
+        <strong id="totalCount">0</strong>
+      </div>
+
+      <div class="summary-box">
+        <span>응답 완료 명장</span>
+        <strong id="masterCount">0</strong>
+      </div>
+
+      <div class="summary-box">
+        <span>공개 동의</span>
+        <strong id="consentCount">0</strong>
+      </div>
+
+      <div class="summary-box">
+        <span>대표 사업장</span>
+        <strong id="representativeCount">0</strong>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <input id="searchInput" type="text" placeholder="성명, 사업장명, 주소 검색">
+
+        <select id="relationFilter">
+          <option value="">관계 전체</option>
+          <option value="direct">직접 소유·운영</option>
+          <option value="brand">명장기술 적용</option>
+          <option value="advice">기술전수·자문·레시피</option>
+          <option value="other">기타</option>
+          <option value="remove">등재 대상 아님</option>
+        </select>
+
+        <select id="consentFilter">
+          <option value="">공개 동의 전체</option>
+          <option value="yes">공개 동의</option>
+          <option value="no">공개 미동의</option>
+        </select>
+
+        <button id="refreshButton" class="btn-primary" type="button">
+          새로고침
+        </button>
+
+        <button id="downloadButton" class="btn-secondary" type="button">
+          CSV 다운로드
+        </button>
+
+        <button id="resetFilterButton" class="btn-secondary" type="button">
+          필터 초기화
+        </button>
+      </div>
+
+      <div id="statusText" class="status">
+        응답을 불러오는 중입니다.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>번호</th>
+              <th>성명</th>
+              <th>직종</th>
+              <th>사업장명</th>
+              <th>주소</th>
+              <th>관계</th>
+              <th>기타 관계</th>
+              <th>대표 사업장</th>
+              <th>공개 동의</th>
+              <th>수정 의견</th>
+              <th>최종 저장 시각</th>
+            </tr>
+          </thead>
+
+          <tbody id="responseBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </section>
+
+</div>
+
+<script>
+const config = window.APP_CONFIG || {};
+
+const isConfigured =
+  config.SUPABASE_URL &&
+  config.SUPABASE_ANON_KEY &&
+  !config.SUPABASE_URL.includes("여기에_") &&
+  !config.SUPABASE_ANON_KEY.includes("여기에_");
+
+const supabaseClient = isConfigured
+  ? window.supabase.createClient(
+      config.SUPABASE_URL,
+      config.SUPABASE_ANON_KEY
+    )
+  : null;
+
+let allRows = [];
+let filteredRows = [];
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function showLoginMessage(message, type) {
+  const box = document.getElementById("loginMessage");
+  box.textContent = message;
+  box.className = `message ${type}`;
+}
+
+function clearLoginMessage() {
+  const box = document.getElementById("loginMessage");
+  box.textContent = "";
+  box.className = "message";
+}
+
+function getRelationBadge(row) {
+  const type = row.relation_type || "";
+  const label = row.relation_label || "미선택";
+
+  const classMap = {
+    direct: "badge-direct",
+    brand: "badge-brand",
+    advice: "badge-advice",
+    other: "badge-other",
+    remove: "badge-remove"
+  };
+
+  const cssClass = classMap[type] || "badge-empty";
+
+  return `<span class="badge ${cssClass}">${escapeHtml(label)}</span>`;
+}
+
+function formatDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString("ko-KR");
+}
+
+function updateSummary() {
+  document.getElementById("totalCount").textContent = allRows.length;
+
+  const names = new Set(
+    allRows
+      .map(row => row.name)
+      .filter(Boolean)
+  );
+
+  document.getElementById("masterCount").textContent = names.size;
+
+  document.getElementById("consentCount").textContent =
+    allRows.filter(row => row.public_consent).length;
+
+  document.getElementById("representativeCount").textContent =
+    allRows.filter(row => row.is_representative).length;
+}
+
+function applyFilters() {
+  const keyword = document
+    .getElementById("searchInput")
+    .value
+    .trim()
+    .toLowerCase();
+
+  const relation = document.getElementById("relationFilter").value;
+  const consent = document.getElementById("consentFilter").value;
+
+  filteredRows = allRows.filter(row => {
+    const searchableText = `
+      ${row.name || ""}
+      ${row.job || ""}
+      ${row.business || ""}
+      ${row.address || ""}
+      ${row.relation_label || ""}
+      ${row.other_text || ""}
+      ${row.note || ""}
+    `.toLowerCase();
+
+    if (keyword && !searchableText.includes(keyword)) {
+      return false;
+    }
+
+    if (relation && row.relation_type !== relation) {
+      return false;
+    }
+
+    if (consent === "yes" && !row.public_consent) {
+      return false;
+    }
+
+    if (consent === "no" && row.public_consent) {
+      return false;
+    }
+
+    return true;
+  });
+
+  renderTable();
+}
+
+function renderTable() {
+  const body = document.getElementById("responseBody");
+
+  if (filteredRows.length === 0) {
+    body.innerHTML = `
+      <tr>
+        <td colspan="11" style="text-align:center; padding:35px;">
+          표시할 응답이 없습니다.
+        </td>
+      </tr>
+    `;
+
+    document.getElementById("statusText").textContent =
+      "표시할 응답이 없습니다.";
+
+    return;
+  }
+
+  body.innerHTML = filteredRows
+    .map(row => `
+      <tr>
+        <td>${escapeHtml(row.idx)}</td>
+        <td>${escapeHtml(row.name)}</td>
+        <td>${escapeHtml(row.job)}</td>
+        <td>${escapeHtml(row.business)}</td>
+        <td>${escapeHtml(row.address)}</td>
+        <td>${getRelationBadge(row)}</td>
+        <td>${escapeHtml(row.other_text)}</td>
+        <td class="${row.is_representative ? "yes" : "no"}">
+          ${row.is_representative ? "Y" : ""}
+        </td>
+        <td class="${row.public_consent ? "yes" : "no"}">
+          ${row.public_consent ? "Y" : ""}
+        </td>
+        <td>${escapeHtml(row.note)}</td>
+        <td>${escapeHtml(formatDate(row.updated_at))}</td>
+      </tr>
+    `)
+    .join("");
+
+  document.getElementById("statusText").textContent =
+    `전체 ${allRows.length}건 중 ${filteredRows.length}건 표시`;
+}
+
+async function loadResponses() {
+  if (!supabaseClient) {
+    document.getElementById("statusText").textContent =
+      "config.js 설정이 필요합니다.";
+    return;
+  }
+
+  document.getElementById("statusText").textContent =
+    "응답을 불러오는 중입니다.";
+
+  const { data, error } = await supabaseClient
+    .from("master_survey_admin_view")
+    .select("*")
+    .order("name", { ascending: true })
+    .order("idx", { ascending: true });
+
+  if (error) {
+    console.error(error);
+
+    document.getElementById("statusText").textContent =
+      "응답을 불러오지 못했습니다. 관리자 SQL과 로그인 상태를 확인하세요.";
+
+    return;
+  }
+
+  allRows = data || [];
+  updateSummary();
+  applyFilters();
+}
+
+function csvCell(value) {
+  const text = String(value ?? "").replaceAll('"', '""');
+  return `"${text}"`;
+}
+
+function downloadCsv() {
+  if (filteredRows.length === 0) {
+    alert("다운로드할 응답이 없습니다.");
+    return;
+  }
+
+  const headers = [
+    "번호",
+    "성명",
+    "직종",
+    "사업장명",
+    "주소",
+    "관계코드",
+    "관계",
+    "기타 관계",
+    "대표 사업장",
+    "공개 동의",
+    "수정 의견",
+    "최종 저장 시각"
+  ];
+
+  const dataRows = filteredRows.map(row => [
+    row.idx,
+    row.name,
+    row.job,
+    row.business,
+    row.address,
+    row.relation_type,
+    row.relation_label,
+    row.other_text,
+    row.is_representative ? "Y" : "N",
+    row.public_consent ? "Y" : "N",
+    row.note,
+    formatDate(row.updated_at)
+  ]);
+
+  const csv = [headers, ...dataRows]
+    .map(row => row.map(csvCell).join(","))
+    .join("\r\n");
+
+  const blob = new Blob(
+    ["\ufeff" + csv],
+    { type: "text/csv;charset=utf-8" }
+  );
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = `명장지도_설문응답_${new Date()
+    .toISOString()
+    .slice(0, 10)}.csv`;
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  URL.revokeObjectURL(url);
+}
+
+async function login() {
+  clearLoginMessage();
+
+  if (!supabaseClient) {
+    showLoginMessage(
+      "config.js에 Supabase 주소와 공개키를 먼저 입력하세요.",
+      "error"
+    );
+    return;
+  }
+
+  const email = document
+    .getElementById("emailInput")
+    .value
+    .trim();
+
+  const password = document
+    .getElementById("passwordInput")
+    .value;
+
+  if (!email || !password) {
+    showLoginMessage(
+      "이메일과 비밀번호를 모두 입력하세요.",
+      "error"
+    );
+    return;
+  }
+
+  const button = document.getElementById("loginButton");
+  button.disabled = true;
+  button.textContent = "로그인 중...";
+
+  const { data, error } =
+    await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+  button.disabled = false;
+  button.textContent = "로그인";
+
+  if (error) {
+    console.error(error);
+
+    showLoginMessage(
+      "로그인에 실패했습니다. 이메일과 비밀번호를 확인하세요.",
+      "error"
+    );
+
+    return;
+  }
+
+  showAdmin(data.user);
+}
+
+async function logout() {
+  await supabaseClient.auth.signOut();
+  showLogin();
+}
+
+function showLogin() {
+  document.getElementById("loginSection").classList.remove("hidden");
+  document.getElementById("adminSection").classList.add("hidden");
+  document.getElementById("passwordInput").value = "";
+  allRows = [];
+  filteredRows = [];
+}
+
+async function showAdmin(user) {
+  document.getElementById("loginSection").classList.add("hidden");
+  document.getElementById("adminSection").classList.remove("hidden");
+
+  document.getElementById("userEmail").textContent =
+    user?.email || "";
+
+  await loadResponses();
+}
+
+async function checkSession() {
+  if (!supabaseClient) {
+    showLoginMessage(
+      "config.js 설정이 완료되지 않았습니다.",
+      "error"
+    );
+    return;
+  }
+
+  const {
+    data: { session }
+  } = await supabaseClient.auth.getSession();
+
+  if (session?.user) {
+    showAdmin(session.user);
+  } else {
+    showLogin();
+  }
+}
+
+document.getElementById("loginButton").addEventListener("click", login);
+
+document.getElementById("passwordInput").addEventListener(
+  "keydown",
+  event => {
+    if (event.key === "Enter") {
+      login();
+    }
+  }
+);
+
+document.getElementById("logoutButton").addEventListener("click", logout);
+document.getElementById("refreshButton").addEventListener("click", loadResponses);
+document.getElementById("downloadButton").addEventListener("click", downloadCsv);
+
+document.getElementById("resetFilterButton").addEventListener(
+  "click",
+  () => {
+    document.getElementById("searchInput").value = "";
+    document.getElementById("relationFilter").value = "";
+    document.getElementById("consentFilter").value = "";
+    applyFilters();
+  }
+);
+
+document.getElementById("searchInput").addEventListener("input", applyFilters);
+document.getElementById("relationFilter").addEventListener("change", applyFilters);
+document.getElementById("consentFilter").addEventListener("change", applyFilters);
+
+checkSession();
+</script>
+
+</body>
+</html>
