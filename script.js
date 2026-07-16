@@ -384,7 +384,7 @@ function findNearbyMasters() {
     .finally(() => {
       if (nearbyButton) {
         nearbyButton.disabled = false;
-        nearbyButton.textContent = "📍 내 주변 명장 찾기";
+        nearbyButton.textContent = "📍 내 주변 대한민국명장 찾기";
       }
     });
 }
@@ -509,8 +509,8 @@ function escapeHtmlAttr(value) {
 }
 
 async function shareMasterPlace(title, text, url) {
-  const shareTitle = title || "대한민국 명장지도";
-  const shareText = text || "대한민국 명장지도에서 확인해보세요.";
+  const shareTitle = title || "대한민국명장 지도";
+  const shareText = text || "대한민국명장 지도에서 확인해보세요.";
   const shareUrl = url || window.location.href;
 
   trackEvent("share_button_click", {
@@ -586,8 +586,8 @@ function makePopup(row) {
   const naverPlaceUrl = naverPlaceLink || `https://map.naver.com/p/search/${encodeURIComponent(placeQuery)}`;
   const naverDirectionsUrl = makeNaverDirectionsUrl(row, business || name, address);
   const trackingBusinessName = escapeHtmlAttr(business || name || "");
-  const shareTitle = escapeHtmlAttr(business || "대한민국 명장지도");
-  const shareText = escapeHtmlAttr(`${business || "사업장"} - ${getJobLabel(job)} ${name ? "· " + name + " 명장" : ""}`);
+  const shareTitle = escapeHtmlAttr(business || "대한민국명장 지도");
+  const shareText = escapeHtmlAttr(`${business || "사업장"} - ${getJobLabel(job)} ${name ? "· " + name + "대한민국명장" : ""}`);
   const shareUrl = escapeHtmlAttr(naverPlaceUrl || window.location.href);
 
   return `
@@ -609,7 +609,7 @@ function makePopup(row) {
       </div>
 
       <div class="popup-line">
-        <b>명장</b> ${name || "-"}
+        <b>대한민국명장</b> ${name || "-"}
       </div>
 
       <div class="popup-line">
