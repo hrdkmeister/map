@@ -39,7 +39,7 @@ header p{margin:0;color:#dce8f5;font-size:13px;line-height:1.6}
 input[type=text],textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #cdd6e2;font-size:14px;font-family:inherit}
 .representative-box,.consent-box{display:block;margin-top:12px;padding:11px 12px;border:1px solid #e1e8f0;border-radius:11px;background:#fbfcfe;font-size:13px;line-height:1.5}
 .note-field{margin-top:10px}
-.note-field summary{font-size:12px;color:#245b92;cursor:pointer}
+.note-field summary{font-size:13px;color:#174a7e;cursor:pointer;font-weight:800;margin-bottom:8px}
 .note-field textarea{min-height:65px;margin-top:8px;resize:vertical}
 .submit-bar{position:sticky;bottom:0;background:white;border-top:1px solid #e1e8f0;padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;box-shadow:0 -4px 16px rgba(0,0,0,.06)}
 .progress-text{font-size:12px;color:#667085;margin-right:auto}
@@ -81,11 +81,11 @@ button:disabled{opacity:.55;cursor:not-allowed}
 
 <script>
 const RELATION_OPTIONS = [
-  {value:"direct",label:"직접 소유·운영 사업장",desc:"대한민국명장 본인이 직접 소유하거나 대표·운영자로서 실질적으로 운영하거나 소속되어 근무하는 사업장."},
+  {value:"direct",label:"직접 소유·운영 사업장",desc:"본인이 직접 소유하거나 대표·운영자로서 실질적으로 운영하거나 소속되어 근무하는 사업장."},
   {value:"brand",label:"기술 적용 사업장",desc:"대한민국명장 본인이 대표 또는 운영 주체인 브랜드의 공식 가맹점으로, 대한민국명장의 기술·레시피·품질관리 기준을 적용합니다. 예시: 체인점, 가맹점"},
   {value:"advice",label:"기술전수·자문·레시피 사용 사업장",desc:"기술전수,자문,고문,교육 또는 레시피 제공 관계가 있으나 직접 운영하는 사업장은 아닙니다."},
-  {value:"other",label:"기타",desc:"위 항목으로 설명하기 어려운 경우 아래 입력란에 관계를 직접 작성"},
-  {value:"remove",label:"등재 대상 아님",desc:"현재 대한민국명장 사업장 지도에 표시하지 않기 바라는 사업장입니다."}
+  {value:"other",label:"기타",desc:"위 항목으로 설명하기 어렵습니다. 아래 입력란에 관계를 직접 작성해주세요."},
+  {value:"remove",label:"등재 대상 아님",desc:"현재 대한민국명장 사업장 지도에 표시하면 안 되는 사업장입니다."}
 ];
 
 const cfg=window.APP_CONFIG||{};
@@ -149,7 +149,7 @@ function render(){
         <input type="text" data-other placeholder="기타 관계를 직접 작성해주세요" value="${esc(a.otherText)}">
       </div>
       <label class="representative-box"><input type="checkbox" data-representative ${a.representative?"checked":""}> 이 사업장을 여러 지점중에 대표 사업장으로 소개합니다.</label>
-      <details class="note-field"><summary>주소·대표품목·링크 수정 또는 추가 의견</summary>
+      <details class="note-field" open><summary>주소·대표품목·링크 수정 또는 추가 의견</summary>
       <textarea data-note placeholder="예: 주소 변경, 폐업, 지점명 변경 등">${esc(a.note)}</textarea></details>`;
 
     card.querySelectorAll(`input[name="relation-${row.idx}"]`).forEach(input=>{
