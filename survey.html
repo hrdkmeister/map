@@ -130,8 +130,8 @@ function render(){
       <div class="extra-field ${a.relationType==="other"?"visible":""}" data-other-wrap>
         <input type="text" data-other placeholder="기타 관계를 직접 작성해주세요" value="${esc(a.otherText)}">
       </div>
-      <label class="representative-box"><input type="checkbox" data-representative ${a.representative?"checked":""}> 이 사업장을 대표 사업장으로 소개하는 데 동의합니다.</label>
-      <label class="consent-box"><input type="checkbox" data-consent ${a.consent?"checked":""}> 위 정보를 대한민국명장 지도 시범서비스에 공개하는 데 동의합니다.</label>
+      <label class="representative-box"><input type="checkbox" data-representative ${a.representative?"checked":""}> 이 사업장을 여러 지점중에 대표사업장으로 지정하여 소개하는데에 동의합니다.</label>
+      <label class="consent-box"><input type="checkbox" data-consent ${a.consent?"checked":""}> 위 정보를 대한민국명장 지도 서비스에 공개하는 것에 동의합니다.</label>
       <details class="note-field"><summary>주소·대표품목·링크 수정 또는 추가 의견</summary>
       <textarea data-note placeholder="예: 주소 변경, 폐업, 지점명 변경 등">${esc(a.note)}</textarea></details>`;
 
