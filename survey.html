@@ -156,6 +156,16 @@ function render(){
       input.addEventListener("change",()=>{
         const opt=RELATION_OPTIONS.find(o=>o.value===input.value);
         a.relationType=input.value;a.relationLabel=opt?.label||"";
+        const representativeCheckbox =
+  card.querySelector("[data-representative]");
+
+if(input.value === "remove"){
+  a.representative = false;
+  representativeCheckbox.checked = false;
+  representativeCheckbox.disabled = true;
+} else {
+  representativeCheckbox.disabled = false;
+}
         card.querySelectorAll(".option-item").forEach(i=>i.classList.toggle("checked",i.dataset.value===input.value));
         card.querySelector("[data-other-wrap]").classList.toggle("visible",input.value==="other");
         card.classList.add("answered");
