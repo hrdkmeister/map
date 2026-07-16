@@ -21,6 +21,8 @@ header p{margin:0;color:#dce8f5;font-size:13px;line-height:1.6}
 .biz-card.invalid{border:2px solid #d92d20;background:#fff7f6}
 .validation-message{display:none;margin:10px 0 0;color:#d92d20;font-size:13px;font-weight:800;line-height:1.45}
 .biz-card.invalid .validation-message{display:block}
+#globalConsentPanel.invalid{border:2px solid #d92d20;background:#fff7f6}
+#globalConsentPanel.invalid .validation-message{display:block}
 .biz-title{font-weight:800;font-size:16px;margin-bottom:5px}
 .biz-sub{font-size:12px;color:#667085;margin-bottom:5px}
 .biz-address{font-size:13px;color:#26364f;margin-bottom:7px}
@@ -58,6 +60,17 @@ button:disabled{opacity:.55;cursor:not-allowed}
 
 <div class="wrap">
   <div id="content"><div class="panel state">정보를 불러오는 중입니다.</div></div>
+
+  <div class="panel" id="globalConsentPanel" style="display:none">
+    <label class="consent-box">
+      <input type="checkbox" id="globalConsent">
+      위 정보를 대한민국명장 사업장 지도 시범서비스에 공개하는 데 동의합니다.
+    </label>
+    <div class="validation-message" id="globalConsentMessage">
+      ⚠ 정보 공개 동의가 필요합니다.
+    </div>
+  </div>
+
   <div class="submit-bar" id="submitBar" style="display:none">
     <span class="progress-text" id="progressText"></span>
     <button class="btn-secondary" id="copyBtn" type="button">결과 복사</button>
@@ -105,6 +118,7 @@ async function loadSurvey(){
 
 function render(){
   const content=document.getElementById("content");
+  const savedGlobalConsent=rows.length>0 && rows.every(row=>!!row.consent);
   content.innerHTML=`<div class="panel greeting"><h2>${esc(personName)} 명장님, 안녕하세요.</h2>
   <p>아래 ${rows.length}개 사업장별 관계를 확인해주세요. 저장 후 같은 링크로 다시 접속하면 수정할 수 있습니다.</p></div>`;
 
@@ -135,7 +149,6 @@ function render(){
         <input type="text" data-other placeholder="기타 관계를 직접 작성해주세요" value="${esc(a.otherText)}">
       </div>
       <label class="representative-box"><input type="checkbox" data-representative ${a.representative?"checked":""}> 이 사업장을 여러 지점중에 대표 사업장으로 소개합니다.</label>
-      <label class="consent-box"><input type="checkbox" data-consent ${a.consent?"checked":""}> 위 정보를 대한민국명장 사업장 지도 시범서비스에 공개하는 데 동의합니다.</label>
       <details class="note-field"><summary>주소·대표품목·링크 수정 또는 추가 의견</summary>
       <textarea data-note placeholder="예: 주소 변경, 폐업, 지점명 변경 등">${esc(a.note)}</textarea></details>`;
 
@@ -159,10 +172,16 @@ function render(){
     card.querySelector("[data-representative]").addEventListener("change",e=>{
       a.representative=e.target.checked;
     });
-    card.querySelector("[data-consent]").addEventListener("change",e=>a.consent=e.target.checked);
     card.querySelector("[data-note]").addEventListener("input",e=>a.note=e.target.value);
     content.appendChild(card);
   });
+  const globalConsentPanel=document.getElementById("globalConsentPanel");
+  const globalConsent=document.getElementById("globalConsent");
+
+  globalConsent.checked=savedGlobalConsent;
+  globalConsentPanel.style.display="block";
+  globalConsentPanel.classList.remove("invalid");
+
   document.getElementById("submitBar").style.display="flex";
   updateProgress();
 }
@@ -231,11 +250,29 @@ function validateBeforeSave(){
     return false;
   }
 
+  const globalConsent=document.getElementById("globalConsent");
+  const globalConsentPanel=document.getElementById("globalConsentPanel");
+
+  if(!globalConsent.checked){
+    globalConsentPanel.classList.add("invalid");
+    globalConsentPanel.scrollIntoView({behavior:"smooth",block:"center"});
+    setTimeout(()=>globalConsent.focus(),450);
+    toast("정보 공개 동의에 체크해주세요.");
+    return false;
+  }
+
+  globalConsentPanel.classList.remove("invalid");
   return true;
 }
 
 function payload(){
-  return rows.map(row=>({idx:row.idx,...answers[row.idx]}));
+  const globalConsent=document.getElementById("globalConsent").checked;
+
+  return rows.map(row=>({
+    idx:row.idx,
+    ...answers[row.idx],
+    consent:globalConsent
+  }));
 }
 
 function resultText(){
@@ -246,12 +283,21 @@ function resultText(){
     lines.push(`  관계: ${a.relationLabel||"(미선택)"}`);
     if(a.otherText)lines.push(`  기타: ${a.otherText}`);
     lines.push(`  대표 사업장: ${a.representative?"예":"아니오"}`);
-    lines.push(`  공개 동의: ${a.consent?"동의":"미동의"}`);
     if(a.note)lines.push(`  메모: ${a.note}`);
     lines.push("");
   });
+
+  const globalConsent=document.getElementById("globalConsent").checked;
+  lines.push(`정보 공개 동의: ${globalConsent?"동의":"미동의"}`);
+
   return lines.join("\n");
 }
+
+document.getElementById("globalConsent").addEventListener("change",event=>{
+  if(event.target.checked){
+    document.getElementById("globalConsentPanel").classList.remove("invalid");
+  }
+});
 
 document.getElementById("copyBtn").onclick=async()=>{
   try{await navigator.clipboard.writeText(resultText());toast("결과가 복사되었습니다.")}
