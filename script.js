@@ -384,7 +384,7 @@ function findNearbyMasters() {
     .finally(() => {
       if (nearbyButton) {
         nearbyButton.disabled = false;
-        nearbyButton.textContent = "📍 내 주변 명장 찾기";
+        nearbyButton.textContent = "📍 내 주변 대한민국명장 찾기";
       }
     });
 }
@@ -473,6 +473,7 @@ function getBusinessCategoryInfo(row) {
   const normalized = rawCategory.replace(/\s+/g, "");
 
   if (
+    normalized === "대한민국명장직영점" ||
     normalized === "명장직영점" ||
     normalized === "직접운영" ||
     normalized === "direct"
@@ -497,11 +498,12 @@ function getBusinessCategoryInfo(row) {
 
   if (
     normalized === "기술전수" ||
+    normalized === "대한민국명장기술전수" ||
     normalized === "명장기술전수" ||
     normalized === "advice"
   ) {
     return {
-      label: "명장기술전수",
+      label: "대한민국명장 기술전수",
       className: "transfer"
     };
   }
@@ -557,8 +559,8 @@ function escapeHtmlAttr(value) {
 }
 
 async function shareMasterPlace(title, text, url) {
-  const shareTitle = title || "대한민국 명장지도";
-  const shareText = text || "대한민국 명장지도에서 확인해보세요.";
+  const shareTitle = title || "대한민국명장 지도";
+  const shareText = text || "대한민국명장 지도에서 확인해보세요.";
   const shareUrl = url || window.location.href;
 
   trackEvent("share_button_click", {
@@ -634,8 +636,8 @@ function makePopup(row) {
   const naverPlaceUrl = naverPlaceLink || `https://map.naver.com/p/search/${encodeURIComponent(placeQuery)}`;
   const naverDirectionsUrl = makeNaverDirectionsUrl(row, business || name, address);
   const trackingBusinessName = escapeHtmlAttr(business || name || "");
-  const shareTitle = escapeHtmlAttr(business || "대한민국 명장지도");
-  const shareText = escapeHtmlAttr(`${business || "사업장"} - ${getJobLabel(job)} ${name ? "· " + name + " 명장" : ""}`);
+  const shareTitle = escapeHtmlAttr(business || "대한민국명장 지도");
+  const shareText = escapeHtmlAttr(`${business || "사업장"} - ${name ? "대한민국명장 " + name + " · " : ""}${getJobLabel(job)}${year ? " · " + year + "년 선정" : ""}`);
   const shareUrl = escapeHtmlAttr(naverPlaceUrl || window.location.href);
   const categoryInfo = getBusinessCategoryInfo(row);
   const categoryBadge = categoryInfo
@@ -657,14 +659,18 @@ function makePopup(row) {
             ${categoryBadge}
           </div>
 
-          <div class="popup-sub">
-            ${getJobLabel(job)} ${year ? "· " + year + "년 선정" : ""}
-          </div>
         </div>
       </div>
 
-      <div class="popup-line">
-        <b>명장</b> ${name || "-"}
+      <div class="popup-info-grid">
+        <div class="popup-info-label">대한민국명장</div>
+        <div class="popup-info-value">${name || "-"}</div>
+
+        <div class="popup-info-label">직종</div>
+        <div class="popup-info-value">${getJobLabel(job)}</div>
+
+        <div class="popup-info-label">선정년도</div>
+        <div class="popup-info-value">${year ? year + "년" : "-"}</div>
       </div>
 
       <div class="popup-line">
@@ -961,7 +967,7 @@ function renderMasterList(rows) {
         </span>
 
         <span class="master-meta">
-          ${getJobLabel(job)} · ${name || "성함 없음"}${distanceText}
+          ${name ? "대한민국명장 " + name + " · " : ""}${getJobLabel(job)}${distanceText}
         </span>
       </span>
     `;
