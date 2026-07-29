@@ -228,18 +228,6 @@ function setupNoticeModal() {
 
 setupNoticeModal();
 
-const siteShareButton = document.getElementById("siteShareButton");
-
-if (siteShareButton) {
-  siteShareButton.addEventListener("click", () => {
-    shareMasterPlace(
-      "대한민국 명장지도",
-      "대한민국 명장의 사업장을 한눈에 확인하세요.",
-      window.location.href
-    );
-  });
-}
-
 setupDesktopWheelZoomGuard();
 
 // 브라우저 자체의 Ctrl(⌘)+휠 페이지 확대/축소를 막는 전역 안전장치.
@@ -473,6 +461,54 @@ function getJobDotClass(job) {
   return "";
 }
 
+
+function getBusinessCategoryInfo(row) {
+  const rawCategory = getField(row, [
+    "사업장구분",
+    "사업장 구분",
+    "관계",
+    "관계구분"
+  ]);
+
+  const normalized = rawCategory.replace(/\s+/g, "");
+
+  if (
+    normalized === "명장직영점" ||
+    normalized === "직접운영" ||
+    normalized === "direct"
+  ) {
+    return {
+      label: "직접운영",
+      className: "direct"
+    };
+  }
+
+  if (
+    normalized === "가맹점" ||
+    normalized === "기술적용·관리" ||
+    normalized === "기술적용관리" ||
+    normalized === "brand"
+  ) {
+    return {
+      label: "기술적용·관리",
+      className: "managed"
+    };
+  }
+
+  if (
+    normalized === "기술전수" ||
+    normalized === "명장기술전수" ||
+    normalized === "advice"
+  ) {
+    return {
+      label: "명장기술전수",
+      className: "transfer"
+    };
+  }
+
+  return null;
+}
+
 function makeCustomIcon(job, isSelected) {
   const type = getJobType(job);
   const emoji = getJobEmoji(job);
@@ -601,6 +637,10 @@ function makePopup(row) {
   const shareTitle = escapeHtmlAttr(business || "대한민국 명장지도");
   const shareText = escapeHtmlAttr(`${business || "사업장"} - ${getJobLabel(job)} ${name ? "· " + name + " 명장" : ""}`);
   const shareUrl = escapeHtmlAttr(naverPlaceUrl || window.location.href);
+  const categoryInfo = getBusinessCategoryInfo(row);
+  const categoryBadge = categoryInfo
+    ? `<span class="business-category-badge ${categoryInfo.className}">${categoryInfo.label}</span>`
+    : "";
 
   return `
     <div class="popup-card">
@@ -610,8 +650,11 @@ function makePopup(row) {
         </span>
 
         <div>
-          <div class="popup-title">
-            ${business || "사업장명 없음"}
+          <div class="popup-title-row">
+            <div class="popup-title">
+              ${business || "사업장명 없음"}
+            </div>
+            ${categoryBadge}
           </div>
 
           <div class="popup-sub">
