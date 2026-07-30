@@ -125,23 +125,6 @@ select:focus-visible {
   min-width: 0;
 }
 
-.header-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 7px;
-  color: #dce8ff;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: -0.2px;
-}
-
-.header-eyebrow-mark {
-  width: 23px;
-  height: 3px;
-  background: var(--meister-cyan);
-  box-shadow: 8px -5px 0 var(--meister-yellow);
-}
 
 .header-left h1 {
   margin: 0;
@@ -1223,10 +1206,6 @@ main {
     gap: 14px;
   }
 
-  .header-eyebrow {
-    font-size: 11px;
-  }
-
   .header-left h1 {
     font-size: 22px;
     letter-spacing: -0.8px;
@@ -1326,5 +1305,66 @@ main {
     min-height: 31px;
     padding: 6px 9px;
     font-size: 11px;
+  }
+}
+
+
+/* 헤더 마이스터Net 연결 로고 */
+.header-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  min-width: 0;
+}
+
+.header-brand-row h1 {
+  flex: 0 1 auto;
+}
+
+.meister-net-link {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 5px;
+  border-radius: 3px;
+  text-decoration: none;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.meister-net-link:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.meister-net-link:active {
+  opacity: 0.82;
+}
+
+.meister-net-link img {
+  display: block;
+  width: 118px;
+  height: auto;
+}
+
+@media (max-width: 900px) {
+  .header-brand-row {
+    gap: 14px;
+  }
+
+  .meister-net-link img {
+    width: 102px;
+  }
+}
+
+@media (max-width: 560px) {
+  .header-brand-row {
+    gap: 9px;
+  }
+
+  .meister-net-link {
+    padding: 2px 3px;
+  }
+
+  .meister-net-link img {
+    width: 82px;
   }
 }
