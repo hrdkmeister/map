@@ -1229,3 +1229,17 @@ Papa.parse(CSV_FILE, {
     );
   }
 });
+
+
+// 대한민국명장 지도 전체 페이지 공유
+const pageShareButton = document.getElementById("pageShareButton");
+
+if (pageShareButton) {
+  pageShareButton.addEventListener("click", () => {
+    shareMasterPlace(
+      "대한민국명장 지도",
+      "대한민국명장의 사업장과 활동 정보를 한눈에 확인해보세요.",
+      window.location.href
+    );
+  });
+}

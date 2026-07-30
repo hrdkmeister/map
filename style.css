@@ -1281,3 +1281,50 @@ main {
     width: 100%;
   }
 }
+
+
+/* 헤더 서비스 공유 버튼 */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.header-share-button {
+  min-height: 34px;
+  padding: 7px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.48);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.09);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.header-share-button:hover {
+  border-color: #ffffff;
+  background: #ffffff;
+  color: var(--meister-blue);
+}
+
+.header-share-button:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 560px) {
+  .header-right {
+    gap: 7px;
+  }
+
+  .header-share-button {
+    min-height: 31px;
+    padding: 6px 9px;
+    font-size: 11px;
+  }
+}
