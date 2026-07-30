@@ -10,7 +10,7 @@
 <title>대한민국명장 지도</title>
 
 <meta name="description" content="대한민국명장의 사업장을 한눈에 확인하는 시범서비스">
-<meta name="theme-color" content="#0437ab">
+<meta name="theme-color" content="#0d3fae">
 
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="favicon-32.png">
@@ -47,13 +47,20 @@
 
 <body>
 
-<header>
+<header class="meister-header">
+
+<div class="header-inner">
 
 <div class="header-left">
 
+<div class="header-eyebrow">
+<span class="header-eyebrow-mark"></span>
+마이스터Net 연계서비스
+</div>
+
 <h1>대한민국명장 지도</h1>
 
-<p>대한민국명장의 사업장을 한눈에 확인하세요.</p>
+<p>대한민국명장의 사업장과 활동 정보를 한눈에 확인하세요.</p>
 
 </div>
 
@@ -63,7 +70,12 @@
 
 <span>검색결과</span>
 
+<div class="result-number-row">
 <strong id="resultCount">0</strong>
+<em>개 사업장</em>
+</div>
+
+</div>
 
 </div>
 
@@ -76,6 +88,8 @@
 <aside>
 
 <div class="logo-card">
+
+<span class="logo-card-label">운영기관</span>
 
 <img src="logo-hrdk.png" alt="한국산업인력공단 글로벌숙련기술진흥원">
 
@@ -227,6 +241,19 @@ placeholder="대한민국명장, 직종, 사업장명 검색">
 
 <main>
 
+<section class="map-panel">
+
+<div class="map-panel-header">
+
+<div>
+<span class="map-panel-kicker">대한민국명장 사업장 위치정보</span>
+<h2>지도에서 사업장 찾기</h2>
+</div>
+
+<p>마커를 선택하면 사업장 관계, 대한민국명장, 직종 및 대표품목을 확인할 수 있습니다.</p>
+
+</div>
+
 <div class="map-wrapper">
 
 <div id="map">
@@ -246,6 +273,8 @@ Ctrl(⌘) + 스크롤로 지도를 확대/축소할 수 있어요
 </div>
 
 </div>
+
+</section>
 
 </main>
 
