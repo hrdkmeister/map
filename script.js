@@ -249,6 +249,7 @@ let currentRows = [];
 let markers = [];
 let markerByIndex = {};
 let markerJobByIndex = {};
+let markerCategoryByIndex = {};
 let selectedIndex = null;
 
 // 현위치 표시용
@@ -470,11 +471,15 @@ function getBusinessCategoryInfo(row) {
     "관계구분"
   ]);
 
-  const normalized = rawCategory.replace(/\s+/g, "");
+  const normalized = rawCategory
+    .replace(/\s+/g, "")
+    .replace(/[·ㆍ,\/()]/g, "")
+    .toLowerCase();
 
   if (
     normalized === "대한민국명장직영점" ||
     normalized === "명장직영점" ||
+    normalized === "직접소유운영" ||
     normalized === "직접운영" ||
     normalized === "direct"
   ) {
@@ -486,12 +491,13 @@ function getBusinessCategoryInfo(row) {
 
   if (
     normalized === "가맹점" ||
-    normalized === "기술적용·관리" ||
+    normalized === "기술적용" ||
     normalized === "기술적용관리" ||
+    normalized === "명장관리사업장" ||
     normalized === "brand"
   ) {
     return {
-      label: "기술적용·관리",
+      label: "기술적용",
       className: "managed"
     };
   }
@@ -500,26 +506,47 @@ function getBusinessCategoryInfo(row) {
     normalized === "기술전수" ||
     normalized === "대한민국명장기술전수" ||
     normalized === "명장기술전수" ||
+    normalized === "기술전수및자문또는레시피사용" ||
+    normalized === "기술전수자문레시피사용" ||
     normalized === "advice"
   ) {
     return {
-      label: "대한민국명장 기술전수",
+      label: "기술전수",
       className: "transfer"
     };
   }
 
-  return null;
+  if (
+    normalized === "재직기업" ||
+    normalized === "대한민국명장재직기업" ||
+    normalized === "명장재직기업" ||
+    normalized === "소속기업" ||
+    normalized === "재직" ||
+    normalized === "affiliation"
+  ) {
+    return {
+      label: "재직기업",
+      className: "affiliation"
+    };
+  }
+
+  return {
+    label: rawCategory || "미분류",
+    className: "unknown"
+  };
 }
 
-function makeCustomIcon(job, isSelected) {
-  const type = getJobType(job);
+function makeCustomIcon(job, categoryInfo, isSelected) {
   const emoji = getJobEmoji(job);
   const selectedClass = isSelected ? "selected" : "";
+  const categoryClass = categoryInfo && categoryInfo.className
+    ? categoryInfo.className
+    : "unknown";
 
   return L.divIcon({
     className: "custom-marker",
     html: `
-      <div class="marker-pin marker-${type} ${selectedClass}">
+      <div class="marker-pin marker-category-${categoryClass} ${selectedClass}">
         <span class="emoji">${emoji}</span>
       </div>
     `,
@@ -706,6 +733,7 @@ function clearMarkers() {
   markers = [];
   markerByIndex = {};
   markerJobByIndex = {};
+  markerCategoryByIndex = {};
   selectedIndex = null;
 }
 
@@ -729,13 +757,14 @@ function showMarkers(rows) {
     const lat = parseFloat(latText);
     const lng = parseFloat(lngText);
     const job = getText(row["직종"]);
+    const categoryInfo = getBusinessCategoryInfo(row);
 
     if (Number.isNaN(lat) || Number.isNaN(lng)) {
       return;
     }
 
     const marker = L.marker([lat, lng], {
-      icon: makeCustomIcon(job, false)
+      icon: makeCustomIcon(job, categoryInfo, false)
     })
       .addTo(map)
       .bindPopup(makePopup(row));
@@ -747,6 +776,7 @@ function showMarkers(rows) {
     markers.push(marker);
     markerByIndex[row.__index] = marker;
     markerJobByIndex[row.__index] = job;
+    markerCategoryByIndex[row.__index] = categoryInfo;
   });
 
   document.getElementById("resultCount").textContent = markers.length;
@@ -766,8 +796,9 @@ function selectMarkerByIndex(index) {
   if (selectedIndex !== null && selectedIndex !== index && markerByIndex[selectedIndex]) {
     const prevMarker = markerByIndex[selectedIndex];
     const prevJob = markerJobByIndex[selectedIndex];
+    const prevCategory = markerCategoryByIndex[selectedIndex];
 
-    prevMarker.setIcon(makeCustomIcon(prevJob, false));
+    prevMarker.setIcon(makeCustomIcon(prevJob, prevCategory, false));
     prevMarker.setZIndexOffset(0);
   }
 
@@ -775,9 +806,10 @@ function selectMarkerByIndex(index) {
 
   const marker = markerByIndex[index];
   const job = markerJobByIndex[index];
+  const categoryInfo = markerCategoryByIndex[index];
 
   if (marker) {
-    marker.setIcon(makeCustomIcon(job, true));
+    marker.setIcon(makeCustomIcon(job, categoryInfo, true));
     marker.setZIndexOffset(1000);
   }
 
@@ -808,6 +840,7 @@ function rowMatchesKeyword(row, keyword) {
     ${getField(row, ["대표사업장명", "사업장명"])}
     ${getField(row, ["주소", "사업장 주소"])}
     ${getField(row, ["대표품목", "주요메뉴", "대표메뉴", "주요사업"])}
+    ${getField(row, ["사업장구분", "사업장 구분", "관계", "관계구분"])}
   `.toLowerCase();
 
   return text.includes(keyword);
@@ -942,6 +975,7 @@ function renderMasterList(rows) {
     const name = getField(row, ["성명", "성함"]);
     const job = getText(row["직종"]);
     const business = getField(row, ["대표사업장명", "사업장명"]);
+    const categoryInfo = getBusinessCategoryInfo(row);
 
     const distanceKm = sortByDistance ? getRowDistanceKm(row) : null;
     const distanceText = distanceKm === null
@@ -957,7 +991,7 @@ function renderMasterList(rows) {
     }
 
     item.innerHTML = `
-      <span class="legend-circle ${getJobDotClass(job)}">
+      <span class="legend-circle business-list-icon category-${categoryInfo.className}" title="${categoryInfo.label}">
         ${getJobEmoji(job)}
       </span>
 

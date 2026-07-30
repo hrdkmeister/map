@@ -1,6 +1,6 @@
 {
   "name": "대한민국명장 지도",
-  "short_name": "대한민국명장 지도",
+  "short_name": "명장 지도",
   "description": "대한민국명장의 사업장을 한눈에 확인하는 시범서비스",
   "start_url": "./index.html",
   "display": "standalone",
