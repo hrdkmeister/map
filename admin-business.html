@@ -17,6 +17,10 @@ main{width:min(1400px,calc(100% - 28px));margin:24px auto 50px}.card{background:
 .table-wrap{overflow:auto;max-height:58vh}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px;border-bottom:1px solid #eaecf0;text-align:left;white-space:nowrap}th{position:sticky;top:0;background:#f8fafc;z-index:1}
 .link-btn{border:0;background:none;color:#0437ab;font-weight:800;cursor:pointer}.badge{display:inline-block;padding:3px 7px;border-radius:10px;font-size:11px;background:#eef2f8}.badge.off{background:#fdecec;color:#a61b1b}
 .form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.field label{display:block;margin-bottom:6px;font-size:12px;font-weight:800;color:#475467}.field.full{grid-column:1/-1}.field textarea{min-height:72px;resize:vertical}
+.coord-tool{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.coord-help{margin-top:6px;color:#667085;font-size:11px;line-height:1.5}
+.coord-message{min-height:18px;margin-top:6px;font-size:12px;color:#157347}
+.coord-message.error{color:#b42318}
 .form-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.message{min-height:22px;margin-top:12px;font-size:13px}
 @media(max-width:850px){.form-grid{grid-template-columns:1fr 1fr}}@media(max-width:560px){.form-grid{grid-template-columns:1fr}header{padding:18px}main{width:calc(100% - 18px)}}
 </style>
@@ -70,6 +74,15 @@ main{width:min(1400px,calc(100% - 28px));margin:24px auto 50px}.card{background:
 <div class="field"><label>관계</label><select id="relationship_type"><option>직접운영</option><option>기술적용</option><option>기술전수</option><option>재직기업</option></select></div>
 <div class="field full"><label>주소</label><input id="address" required></div>
 <div class="field full"><label>대표품목</label><textarea id="main_item"></textarea></div>
+<div class="field full">
+<label>구글 지도 URL에서 좌표 가져오기</label>
+<div class="coord-tool">
+<input id="google_map_url" type="url" placeholder="https://www.google.com/maps/place/.../@37.123456,127.123456,17z">
+<button id="extractCoordsBtn" class="btn secondary" type="button">좌표 가져오기</button>
+</div>
+<div class="coord-help">URL에 포함된 @위도,경도 또는 query=위도,경도 형식의 좌표를 자동 입력합니다.</div>
+<div id="coordMessage" class="coord-message"></div>
+</div>
 <div class="field"><label>위도</label><input id="latitude" type="number" step="any" required></div>
 <div class="field"><label>경도</label><input id="longitude" type="number" step="any" required></div>
 <div class="field"><label>운영상태</label><select id="status"><option value="active">운영</option><option value="hidden">비공개</option><option value="closed">폐업</option><option value="checking">정보확인중</option></select></div>
@@ -113,10 +126,59 @@ function openForm(row=null){
  editingId=row?.business_id||null;$("formTitle").textContent=row?"사업장 수정":"신규 사업장";
  const ids=["business_id","job_type","master_name","selection_year","business_name","address","main_item","latitude","longitude","naver_place_url","relationship_type","status"];
  ids.forEach(id=>$(id).value=row?.[id]??"");
- $("is_public").checked=row?Boolean(row.is_public):true;
+ $("is_public").checked=row?Boolean(row.is_public):true;$("google_map_url").value="";$("coordMessage").textContent="";
  $("business_id").readOnly=Boolean(row);$("editCard").classList.remove("hidden");$("editCard").scrollIntoView({behavior:"smooth"});
 }
 function closeForm(){$("editCard").classList.add("hidden");$("businessForm").reset();editingId=null;$("saveMessage").textContent=""}
+
+function extractCoordinatesFromGoogleMapsUrl(url){
+ const text=String(url||"").trim();
+ if(!text)return null;
+
+ const decoded=(()=>{try{return decodeURIComponent(text)}catch{return text}})();
+ const patterns=[
+   /@(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/,
+   /[?&](?:query|q|ll|center)=(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/i,
+   /!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/,
+   /(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/
+ ];
+
+ for(const pattern of patterns){
+   const match=decoded.match(pattern);
+   if(!match)continue;
+
+   const lat=Number(match[1]);
+   const lng=Number(match[2]);
+
+   if(Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=33&&lat<=39&&lng>=124&&lng<=132){
+     return {lat,lng};
+   }
+ }
+
+ return null;
+}
+
+$("extractCoordsBtn").addEventListener("click",()=>{
+ const message=$("coordMessage");
+ message.className="coord-message";
+
+ const coords=extractCoordinatesFromGoogleMapsUrl($("google_map_url").value);
+
+ if(!coords){
+   message.textContent="좌표를 찾지 못했습니다. URL에 @위도,경도 값이 포함되어 있는지 확인해 주세요.";
+   message.classList.add("error");
+   return;
+ }
+
+ $("latitude").value=coords.lat.toFixed(7);
+ $("longitude").value=coords.lng.toFixed(7);
+ message.textContent=`좌표 입력 완료: ${coords.lat.toFixed(7)}, ${coords.lng.toFixed(7)}`;
+});
+
+$("google_map_url").addEventListener("paste",()=>{
+ setTimeout(()=>$("extractCoordsBtn").click(),0);
+});
+
 $("loginForm").addEventListener("submit",async e=>{e.preventDefault();$("loginMessage").textContent="";
  const {data,error}=await client.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
  if(error){$("loginMessage").textContent="로그인 실패: "+error.message;return}showApp(data.user);
