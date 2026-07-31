@@ -211,6 +211,10 @@ function setupNoticeModal() {
         }
       }
 
+      trackEvent(
+        "notice_close",
+        dontShowCheckbox && dontShowCheckbox.checked ? "dismiss_today" : "close"
+      );
       hideModal();
     });
   }
@@ -570,11 +574,106 @@ function makeNaverDirectionsUrl(row, business, address) {
   return `https://map.naver.com/p/search/${encodeURIComponent(query)}`;
 }
 
-function trackEvent(eventName, params = {}) {
-  if (typeof window.gtag === "function") {
-    window.gtag("event", eventName, params);
+// ============================================================
+// Supabase 익명 이용통계
+// ------------------------------------------------------------
+// - 방문자의 이름, IP 주소, 검색어 원문, 정확한 위치는 저장하지 않습니다.
+// - 날짜별 이벤트 횟수만 Supabase RPC 함수(record_map_event)에 누적합니다.
+// - index.html의 MEISTER_ANALYTICS_CONFIG 값이 비어 있으면 자동 비활성화됩니다.
+// ============================================================
+
+let analyticsSupabaseClient = null;
+let analyticsReady = false;
+
+function setupAnonymousAnalytics() {
+  const config = window.MEISTER_ANALYTICS_CONFIG || {};
+  const supabaseUrl = getText(config.supabaseUrl);
+  const supabaseAnonKey = getText(config.supabaseAnonKey);
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.info("익명 이용통계: Supabase 연결정보가 없어 비활성화 상태입니다.");
+    return;
+  }
+
+  if (!window.supabase || typeof window.supabase.createClient !== "function") {
+    console.warn("익명 이용통계: Supabase 라이브러리를 불러오지 못했습니다.");
+    return;
+  }
+
+  analyticsSupabaseClient = window.supabase.createClient(
+    supabaseUrl,
+    supabaseAnonKey,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      }
+    }
+  );
+
+  analyticsReady = true;
+}
+
+/**
+ * 익명 통계 이벤트 기록
+ * @param {string} eventName 허용된 통계 이벤트명
+ * @param {string} targetId 개인식별정보가 아닌 내부 코드
+ */
+async function trackEvent(eventName, targetId = "all") {
+  if (!analyticsReady || !analyticsSupabaseClient) {
+    return;
+  }
+
+  const safeEventName = getText(eventName).slice(0, 50);
+  const safeTargetId = getText(targetId || "all").slice(0, 50) || "all";
+
+  if (!safeEventName) {
+    return;
+  }
+
+  try {
+    const { error } = await analyticsSupabaseClient.rpc("record_map_event", {
+      p_event_name: safeEventName,
+      p_target_id: safeTargetId
+    });
+
+    if (error) {
+      console.warn("익명 이용통계 기록 실패:", error.message);
+    }
+  } catch (error) {
+    // 통계 오류 때문에 지도 서비스가 중단되지 않도록 예외를 흡수합니다.
+    console.warn("익명 이용통계 처리 오류:", error);
   }
 }
+
+/**
+ * CSV 행에서 통계용 내부 식별자를 생성합니다.
+ * CSV에 ID/사업장ID 열이 있으면 그 값을 우선 사용하고,
+ * 없으면 현재 행 번호를 사용합니다.
+ */
+function getAnalyticsTargetId(row) {
+  const explicitId = getField(row, [
+    "ID",
+    "id",
+    "사업장ID",
+    "사업장 ID",
+    "business_id"
+  ]);
+
+  if (explicitId) {
+    return explicitId;
+  }
+
+  if (row && Number.isInteger(row.__index)) {
+    return `business_${row.__index + 1}`;
+  }
+
+  return "unknown";
+}
+
+setupAnonymousAnalytics();
+trackEvent("page_view", "all");
 
 function escapeHtmlAttr(value) {
   return getText(value)
@@ -589,10 +688,6 @@ async function shareMasterPlace(title, text, url) {
   const shareTitle = title || "대한민국명장 지도";
   const shareText = text || "대한민국명장 지도에서 확인해보세요.";
   const shareUrl = url || window.location.href;
-
-  trackEvent("share_button_click", {
-    business_name: shareTitle
-  });
 
   if (navigator.share) {
     try {
@@ -662,7 +757,7 @@ function makePopup(row) {
   const placeQuery = `${business || name} ${address}`.trim();
   const naverPlaceUrl = naverPlaceLink || `https://map.naver.com/p/search/${encodeURIComponent(placeQuery)}`;
   const naverDirectionsUrl = makeNaverDirectionsUrl(row, business || name, address);
-  const trackingBusinessName = escapeHtmlAttr(business || name || "");
+  const analyticsTargetId = escapeHtmlAttr(getAnalyticsTargetId(row));
   const shareTitle = escapeHtmlAttr(business || "대한민국명장 지도");
   const shareText = escapeHtmlAttr(`${business || "사업장"} - ${name ? "대한민국명장 " + name + " · " : ""}${getJobLabel(job)}${year ? " · " + year + "년 선정" : ""}`);
   const shareUrl = escapeHtmlAttr(naverPlaceUrl || window.location.href);
@@ -709,15 +804,15 @@ function makePopup(row) {
       </div>
 
       <div class="popup-actions">
-        <a class="popup-button popup-track-link" href="${naverPlaceUrl}" target="_blank" rel="noopener" data-track-event="naver_place_click" data-business-name="${trackingBusinessName}">
+        <a class="popup-button popup-track-link" href="${naverPlaceUrl}" target="_blank" rel="noopener" data-track-event="naver_place_click" data-target-id="${analyticsTargetId}">
           네이버 플레이스
         </a>
 
-        <a class="popup-button popup-button-secondary popup-track-link" href="${naverDirectionsUrl}" target="_blank" rel="noopener" data-track-event="naver_directions_click" data-business-name="${trackingBusinessName}">
+        <a class="popup-button popup-button-secondary popup-track-link" href="${naverDirectionsUrl}" target="_blank" rel="noopener" data-track-event="directions_click" data-target-id="${analyticsTargetId}">
           길찾기
         </a>
 
-        <button class="popup-button popup-button-share popup-share-button" type="button" data-share-title="${shareTitle}" data-share-text="${shareText}" data-share-url="${shareUrl}">
+        <button class="popup-button popup-button-share popup-share-button" type="button" data-target-id="${analyticsTargetId}" data-share-title="${shareTitle}" data-share-text="${shareText}" data-share-url="${shareUrl}">
           공유하기
         </button>
       </div>
@@ -770,6 +865,7 @@ function showMarkers(rows) {
       .bindPopup(makePopup(row));
 
     marker.on("click", () => {
+      trackEvent("marker_click", getAnalyticsTargetId(row));
       selectMarkerByIndex(row.__index);
     });
 
@@ -949,8 +1045,12 @@ function applyFilters() {
 }
 
 function searchRows() {
-  trackEvent("search", { search_term: getText(document.getElementById("searchInput").value) });
+  const keyword = getText(document.getElementById("searchInput").value);
+
+  // 검색어 원문은 저장하지 않고 검색 실행 여부와 결과 유무만 기록합니다.
+  trackEvent("search_execute", keyword ? "with_keyword" : "empty");
   applyFilters();
+  trackEvent("search_result", currentRows.length > 0 ? "has_result" : "no_result");
 }
 
 function renderMasterList(rows) {
@@ -1013,6 +1113,7 @@ function renderMasterList(rows) {
         return;
       }
 
+      trackEvent("business_detail_click", getAnalyticsTargetId(row));
       selectMarkerByIndex(row.__index);
       scrollMapIntoViewOnMobile();
 
@@ -1064,6 +1165,7 @@ function setupJobFilterButtons() {
         activeJobFilter = jobType;
       }
 
+      trackEvent("category_filter", activeJobFilter || "all");
       applyFilters();
     });
   });
@@ -1073,6 +1175,7 @@ function setupJobFilterButtons() {
   if (resetButton) {
     resetButton.addEventListener("click", () => {
       activeJobFilter = "";
+      trackEvent("category_filter", "all");
       applyFilters();
     });
   }
@@ -1121,6 +1224,7 @@ function setupRegionFilterSelect() {
 
   select.addEventListener("change", () => {
     activeRegionFilter = select.value;
+    trackEvent("region_filter", activeRegionFilter || "all");
     applyFilters();
   });
 }
@@ -1130,6 +1234,7 @@ document.addEventListener("click", event => {
   const shareButton = event.target.closest(".popup-share-button");
 
   if (shareButton) {
+    trackEvent("share_click", shareButton.dataset.targetId || "unknown");
     shareMasterPlace(
       shareButton.dataset.shareTitle,
       shareButton.dataset.shareText,
@@ -1144,9 +1249,10 @@ document.addEventListener("click", event => {
     return;
   }
 
-  trackEvent(link.dataset.trackEvent, {
-    business_name: link.dataset.businessName || ""
-  });
+  trackEvent(
+    link.dataset.trackEvent,
+    link.dataset.targetId || "unknown"
+  );
 });
 
 document.getElementById("searchButton").addEventListener("click", () => {
@@ -1154,6 +1260,7 @@ document.getElementById("searchButton").addEventListener("click", () => {
 });
 
 document.getElementById("resetButton").addEventListener("click", () => {
+  trackEvent("reset_click", "all");
   document.getElementById("searchInput").value = "";
   activeJobFilter = "";
   activeRegionFilter = "";
@@ -1188,7 +1295,7 @@ document.getElementById("resetButton").addEventListener("click", () => {
 });
 
 document.getElementById("nearbyButton").addEventListener("click", () => {
-  trackEvent("nearby_button_click");
+  trackEvent("nearby_search_click", "all");
   findNearbyMasters();
 });
 
@@ -1236,6 +1343,7 @@ const pageShareButton = document.getElementById("pageShareButton");
 
 if (pageShareButton) {
   pageShareButton.addEventListener("click", () => {
+    trackEvent("share_click", "page");
     shareMasterPlace(
       "대한민국명장 지도",
       "대한민국명장의 사업장과 활동 정보를 한눈에 확인해보세요.",

@@ -17,25 +17,15 @@
 <link rel="manifest" href="manifest.webmanifest">
 
 <!--
-  접속 통계 사용 시 아래 GA_MEASUREMENT_ID를 실제 Google Analytics 측정 ID로 교체해라.
-  예: G-XXXXXXXXXX
+  Supabase 익명 이용통계 설정
+  아래 두 값은 Supabase 연결 단계에서 실제 프로젝트 값으로 교체합니다.
+  현재 빈 값으로 두면 통계 기능만 비활성화되고 지도 서비스는 정상 작동합니다.
 -->
 <script>
-  window.GA_MEASUREMENT_ID = "";
-</script>
-<script>
-  if (window.GA_MEASUREMENT_ID) {
-    const gaScript = document.createElement("script");
-    gaScript.async = true;
-    gaScript.src = `https://www.googletagmanager.com/gtag/js?id=${window.GA_MEASUREMENT_ID}`;
-    document.head.appendChild(gaScript);
-
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    window.gtag = gtag;
-    gtag("js", new Date());
-    gtag("config", window.GA_MEASUREMENT_ID);
-  }
+  window.MEISTER_ANALYTICS_CONFIG = {
+    supabaseUrl: "",
+    supabaseAnonKey: ""
+  };
 </script>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
@@ -429,6 +419,9 @@ Ctrl(⌘) + 스크롤로 지도를 확대/축소할 수 있어요
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+<!-- Supabase 익명 이용통계용 라이브러리 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script src="script.js"></script>
 
