@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>대한민국명장 사업장 관리</title>
+<script src="supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:"Pretendard","Noto Sans KR",Arial,sans-serif;background:#f4f6f9;color:#1f2937}
+header{padding:22px 28px;background:#0437ab;color:#fff}header h1{margin:0;font-size:24px}header p{margin:7px 0 0;font-size:13px;opacity:.9}
+main{width:min(1400px,calc(100% - 28px));margin:24px auto 50px}.card{background:#fff;border:1px solid #dfe4ea;border-radius:12px;padding:20px;margin-bottom:16px}
+.login{width:min(440px,100%);margin:60px auto}.login input,.field input,.field select,.field textarea{width:100%;border:1px solid #cfd6df;border-radius:7px;padding:10px 11px;font:inherit}
+.login input{height:45px;margin:6px 0 13px}.btn{border:0;border-radius:7px;padding:10px 15px;font-weight:700;cursor:pointer}.primary{background:#0437ab;color:#fff}.secondary{background:#edf1f6;color:#344054}
+.toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.actions{display:flex;gap:8px;flex-wrap:wrap}
+.search{width:min(420px,100%);height:42px;border:1px solid #cfd6df;border-radius:7px;padding:0 12px}.status{font-size:13px;color:#667085}.hidden{display:none!important}
+.table-wrap{overflow:auto;max-height:58vh}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px;border-bottom:1px solid #eaecf0;text-align:left;white-space:nowrap}th{position:sticky;top:0;background:#f8fafc;z-index:1}
+.link-btn{border:0;background:none;color:#0437ab;font-weight:800;cursor:pointer}.badge{display:inline-block;padding:3px 7px;border-radius:10px;font-size:11px;background:#eef2f8}.badge.off{background:#fdecec;color:#a61b1b}
+.form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.field label{display:block;margin-bottom:6px;font-size:12px;font-weight:800;color:#475467}.field.full{grid-column:1/-1}.field textarea{min-height:72px;resize:vertical}
+.form-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.message{min-height:22px;margin-top:12px;font-size:13px}
+@media(max-width:850px){.form-grid{grid-template-columns:1fr 1fr}}@media(max-width:560px){.form-grid{grid-template-columns:1fr}header{padding:18px}main{width:calc(100% - 18px)}}
+</style>
+</head>
+<body>
+<header><h1>대한민국명장 사업장 관리</h1><p>관리자 전용 · 등록·수정·공개상태 관리</p></header>
+<main>
+<section id="loginCard" class="card login">
+<h2>관리자 로그인</h2>
+<p class="status">기존 Supabase 관리자 계정 사용</p>
+<form id="loginForm">
+<label>이메일</label><input id="email" type="email" autocomplete="username" required>
+<label>비밀번호</label><input id="password" type="password" autocomplete="current-password" required>
+<button class="btn primary" style="width:100%" type="submit">로그인</button>
+<div id="loginMessage" class="message"></div>
+</form>
+</section>
+
+<section id="app" class="hidden">
+<div class="card toolbar">
+<div><strong>사업장 데이터 관리</strong><div id="userEmail" class="status"></div></div>
+<div class="actions">
+<button id="backupBtn" class="btn secondary">CSV 백업</button>
+<button id="addBtn" class="btn primary">신규 사업장</button>
+<button id="logoutBtn" class="btn secondary">로그아웃</button>
+</div>
+</div>
+
+<div class="card">
+<div class="toolbar">
+<input id="searchInput" class="search" placeholder="사업장명, 명장 성명, 주소, 사업장ID 검색">
+<div id="countText" class="status"></div>
+</div>
+<div class="table-wrap">
+<table>
+<thead><tr><th>ID</th><th>사업장명</th><th>대한민국명장</th><th>직종</th><th>관계</th><th>상태</th><th>공개</th><th>수정</th></tr></thead>
+<tbody id="businessBody"></tbody>
+</table>
+</div>
+</div>
+
+<div id="editCard" class="card hidden">
+<h2 id="formTitle">사업장 수정</h2>
+<form id="businessForm">
+<div class="form-grid">
+<div class="field"><label>사업장ID</label><input id="business_id" required placeholder="B001"></div>
+<div class="field"><label>직종</label><select id="job_type"><option>제과·제빵</option><option>요리</option><option>자동차정비</option></select></div>
+<div class="field"><label>대한민국명장 성명</label><input id="master_name" required></div>
+<div class="field"><label>선정년도</label><input id="selection_year" type="number" min="1986" max="2100"></div>
+<div class="field"><label>대표사업장명</label><input id="business_name" required></div>
+<div class="field"><label>관계</label><select id="relationship_type"><option>직접운영</option><option>기술적용</option><option>기술전수</option><option>재직기업</option></select></div>
+<div class="field full"><label>주소</label><input id="address" required></div>
+<div class="field full"><label>대표품목</label><textarea id="main_item"></textarea></div>
+<div class="field"><label>위도</label><input id="latitude" type="number" step="any" required></div>
+<div class="field"><label>경도</label><input id="longitude" type="number" step="any" required></div>
+<div class="field"><label>운영상태</label><select id="status"><option value="active">운영</option><option value="hidden">비공개</option><option value="closed">폐업</option><option value="checking">정보확인중</option></select></div>
+<div class="field full"><label>네이버 플레이스 URL</label><input id="naver_place_url" type="url"></div>
+<div class="field"><label><input id="is_public" type="checkbox" style="width:auto"> 지도에 공개</label></div>
+</div>
+<div id="saveMessage" class="message"></div>
+<div class="form-footer">
+<button id="cancelBtn" class="btn secondary" type="button">취소</button>
+<button class="btn primary" type="submit">저장</button>
+</div>
+</form>
+</div>
+</section>
+</main>
+<script>
+const cfg=window.MEISTER_SUPABASE_CONFIG||{};
+const client=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true}});
+let rows=[];let editingId=null;
+const $=id=>document.getElementById(id);
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function showApp(user){$("loginCard").classList.add("hidden");$("app").classList.remove("hidden");$("userEmail").textContent=user.email||"";loadRows()}
+function showLogin(){$("loginCard").classList.remove("hidden");$("app").classList.add("hidden")}
+async function loadRows(){
+ const {data,error}=await client.from("meister_businesses").select("*").order("business_id");
+ if(error){alert("사업장 목록 조회 실패: "+error.message);return}
+ rows=data||[];render();
+}
+function render(){
+ const q=$("searchInput").value.trim().toLowerCase();
+ const filtered=rows.filter(r=>[r.business_id,r.business_name,r.master_name,r.address,r.job_type].join(" ").toLowerCase().includes(q));
+ $("countText").textContent=`${filtered.length}개 사업장`;
+ $("businessBody").innerHTML=filtered.map(r=>`<tr>
+ <td>${esc(r.business_id)}</td><td>${esc(r.business_name)}</td><td>${esc(r.master_name)}</td>
+ <td>${esc(r.job_type)}</td><td>${esc(r.relationship_type)}</td>
+ <td><span class="badge">${esc(r.status)}</span></td>
+ <td><span class="badge ${r.is_public?"":"off"}">${r.is_public?"공개":"비공개"}</span></td>
+ <td><button class="link-btn" data-id="${esc(r.business_id)}">수정</button></td></tr>`).join("");
+}
+function openForm(row=null){
+ editingId=row?.business_id||null;$("formTitle").textContent=row?"사업장 수정":"신규 사업장";
+ const ids=["business_id","job_type","master_name","selection_year","business_name","address","main_item","latitude","longitude","naver_place_url","relationship_type","status"];
+ ids.forEach(id=>$(id).value=row?.[id]??"");
+ $("is_public").checked=row?Boolean(row.is_public):true;
+ $("business_id").readOnly=Boolean(row);$("editCard").classList.remove("hidden");$("editCard").scrollIntoView({behavior:"smooth"});
+}
+function closeForm(){$("editCard").classList.add("hidden");$("businessForm").reset();editingId=null;$("saveMessage").textContent=""}
+$("loginForm").addEventListener("submit",async e=>{e.preventDefault();$("loginMessage").textContent="";
+ const {data,error}=await client.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
+ if(error){$("loginMessage").textContent="로그인 실패: "+error.message;return}showApp(data.user);
+});
+$("logoutBtn").onclick=async()=>{await client.auth.signOut();showLogin()};
+$("searchInput").addEventListener("input",render);
+$("addBtn").onclick=()=>openForm();
+$("cancelBtn").onclick=closeForm;
+$("businessBody").addEventListener("click",e=>{const b=e.target.closest("[data-id]");if(!b)return;openForm(rows.find(r=>r.business_id===b.dataset.id))});
+$("businessForm").addEventListener("submit",async e=>{e.preventDefault();$("saveMessage").textContent="저장 중...";
+ const payload={
+ business_id:$("business_id").value.trim(),job_type:$("job_type").value,master_name:$("master_name").value.trim(),
+ selection_year:$("selection_year").value?Number($("selection_year").value):null,business_name:$("business_name").value.trim(),
+ address:$("address").value.trim(),main_item:$("main_item").value.trim(),latitude:Number($("latitude").value),
+ longitude:Number($("longitude").value),naver_place_url:$("naver_place_url").value.trim()||null,
+ relationship_type:$("relationship_type").value,status:$("status").value,is_public:$("is_public").checked};
+ const {error}=await client.from("meister_businesses").upsert(payload,{onConflict:"business_id"});
+ if(error){$("saveMessage").textContent="저장 실패: "+error.message;return}
+ $("saveMessage").textContent="저장 완료";await loadRows();setTimeout(closeForm,500);
+});
+$("backupBtn").onclick=()=>{const headers=["business_id","job_type","master_name","selection_year","business_name","address","main_item","latitude","longitude","naver_place_url","relationship_type","is_public","status","created_at","updated_at"];
+ const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;const csv="\uFEFF"+[headers.join(","),...rows.map(r=>headers.map(h=>q(r[h])).join(","))].join("\n");
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download=`meister_businesses_backup_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(a.href);
+};
+client.auth.onAuthStateChange((_,s)=>s?.user?showApp(s.user):showLogin());
+client.auth.getUser().then(({data})=>data?.user?showApp(data.user):showLogin());
+</script>
+</body></html>

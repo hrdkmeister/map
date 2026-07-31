@@ -1,5 +1,3 @@
-const CSV_FILE = "mapdata.csv";
-
 const map = L.map("map").setView([36.5, 127.8], 7);
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -652,24 +650,24 @@ async function trackEvent(eventName, targetId = "all") {
  * CSV에 ID/사업장ID 열이 있으면 그 값을 우선 사용하고,
  * 없으면 현재 행 번호를 사용합니다.
  */
-/**
- * CSV 행에서 통계용 사업장ID를 가져옵니다.
- * CSV의 사업장ID 열만 사용하며 행 번호는 사용하지 않습니다.
- */
 function getAnalyticsTargetId(row) {
-  const businessId = getField(row, [
+  const explicitId = getField(row, [
+    "ID",
+    "id",
     "사업장ID",
     "사업장 ID",
-    "business_id",
-    "businessId"
+    "business_id"
   ]);
 
-  if (businessId) {
-    return businessId;
+  if (explicitId) {
+    return explicitId;
   }
 
-  console.warn("사업장ID가 없는 데이터입니다.", row);
-  return "missing_business_id";
+  if (row && Number.isInteger(row.__index)) {
+    return `business_${row.__index + 1}`;
+  }
+
+  return "unknown";
 }
 
 setupAnonymousAnalytics();
@@ -1308,34 +1306,87 @@ document.getElementById("searchInput").addEventListener("keydown", event => {
 setupJobFilterButtons();
 setupRegionFilterSelect();
 
-Papa.parse(CSV_FILE, {
-  download: true,
-  header: true,
-  skipEmptyLines: true,
-  complete: function(results) {
-    allRows = results.data.map((row, index) => {
-      return {
-        ...row,
-        __index: index
-      };
+
+function mapSupabaseBusinessRow(row, index) {
+  return {
+    "사업장ID": getText(row.business_id),
+    "직종": getText(row.job_type),
+    "성명": getText(row.master_name),
+    "선정년도": row.selection_year === null || row.selection_year === undefined
+      ? ""
+      : String(row.selection_year),
+    "대표사업장명": getText(row.business_name),
+    "주소": getText(row.address),
+    "대표품목": getText(row.main_item),
+    "위도": row.latitude === null || row.latitude === undefined
+      ? ""
+      : String(row.latitude),
+    "경도": row.longitude === null || row.longitude === undefined
+      ? ""
+      : String(row.longitude),
+    "네이버플레이스": getText(row.naver_place_url),
+    "관계": getText(row.relationship_type),
+    __index: index
+  };
+}
+
+async function loadBusinessDataFromSupabase() {
+  const config = window.MEISTER_SUPABASE_CONFIG ||
+                 window.MEISTER_ANALYTICS_CONFIG ||
+                 {};
+  const supabaseUrl = getText(config.supabaseUrl);
+  const supabaseAnonKey = getText(config.supabaseAnonKey);
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    alert(
+      "Supabase 연결정보가 비어 있습니다.\n" +
+      "supabase-config.js에 Project URL과 Publishable key를 입력해 주세요."
+    );
+    return;
+  }
+
+  if (!window.supabase || typeof window.supabase.createClient !== "function") {
+    alert("Supabase 라이브러리를 불러오지 못했습니다.");
+    return;
+  }
+
+  const dataClient = analyticsSupabaseClient ||
+    window.supabase.createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      }
     });
 
+  try {
+    const { data, error } = await dataClient.rpc(
+      "get_public_meister_businesses"
+    );
+
+    if (error) {
+      throw error;
+    }
+
+    allRows = (data || []).map(mapSupabaseBusinessRow);
     currentRows = allRows;
+
     populateRegionOptions();
     showMarkers(currentRows);
     updateLegendStyle();
 
-    console.log("CSV 불러오기 완료:", allRows);
-  },
-  error: function(error) {
-    console.error("CSV 불러오기 실패:", error);
+    console.log("Supabase 사업장 데이터 불러오기 완료:", allRows.length);
+  } catch (error) {
+    console.error("Supabase 사업장 데이터 불러오기 실패:", error);
 
     alert(
-      "CSV 파일을 불러오지 못했습니다. 파일명과 위치를 확인하세요.\n\n" +
-      "필요 파일명: mapdata.csv"
+      "사업장 정보를 불러오지 못했습니다.\n\n" +
+      (error.message || "Supabase 테이블과 공개 조회 함수 설정을 확인해 주세요.")
     );
   }
-});
+}
+
+loadBusinessDataFromSupabase();
 
 
 // 대한민국명장 지도 전체 페이지 공유

@@ -16,17 +16,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 
-<!--
-  Supabase 익명 이용통계 설정
-  아래 두 값은 Supabase 연결 단계에서 실제 프로젝트 값으로 교체합니다.
-  현재 빈 값으로 두면 통계 기능만 비활성화되고 지도 서비스는 정상 작동합니다.
--->
-<script>
- window.MEISTER_ANALYTICS_CONFIG = {
-    supabaseUrl: "https://ikouzufqmsgjpungfnbi.supabase.co",
-    supabaseAnonKey: "sb_publishable_uwmJ6TovhD7fV7lKvIedBA_I8Yf5oH4"
-  };
-</script>
+<script src="supabase-config.js"></script>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 
@@ -385,10 +375,6 @@ Ctrl(⌘) + 스크롤로 지도를 확대/축소할 수 있어요
             정보의 수정·삭제 또는 공개 철회를 요청하는 경우 확인 후 반영합니다.
         </p>
 
-        <p>
-          서비스 개선을 위해 개인을 식별할 수 없는 이용통계만 집계하며, 개인정보는 수집하지 않습니다.
-        </p>
-          
         <p class="notice-contact">
             정보 수정·삭제 문의:
             한국산업인력공단 글로벌숙련기술진흥원
@@ -421,9 +407,6 @@ Ctrl(⌘) + 스크롤로 지도를 확대/축소할 수 있어요
 
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-
 <!-- Supabase 익명 이용통계용 라이브러리 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 

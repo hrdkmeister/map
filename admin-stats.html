@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>대한민국명장 지도 이용통계</title>
 
+  <script src="supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
@@ -500,8 +500,8 @@
   </main>
 
   <script>
-    const SUPABASE_URL = "https://ikouzufqmsgjpungfnbi.supabase.co";
-    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_uwmJ6TovhD7fV7lKvIedBA_I8Yf5oH4";
+    const SUPABASE_URL = window.MEISTER_SUPABASE_CONFIG.supabaseUrl;
+    const SUPABASE_PUBLISHABLE_KEY = window.MEISTER_SUPABASE_CONFIG.supabaseAnonKey;
 
     const supabaseClient = window.supabase.createClient(
       SUPABASE_URL,
@@ -624,54 +624,29 @@
     }
 
     async function loadBusinessNames() {
-      return new Promise(resolve => {
-        if (!window.Papa) {
-          resolve();
-          return;
+      try {
+        const { data, error } = await supabaseClient
+          .from("meister_businesses")
+          .select("business_id,business_name,master_name")
+          .order("business_id");
+
+        if (error) {
+          throw error;
         }
 
-        Papa.parse("mapdata.csv", {
-          download: true,
-          header: true,
-          skipEmptyLines: true,
-          complete(results) {
-            const map = new Map();
-
-            for (const row of results.data || []) {
-              const id = firstNonEmpty(row, [
-                "사업장ID",
-                "사업장 ID",
-                "business_id",
-                "businessId"
-              ]);
-
-              const business = firstNonEmpty(row, [
-                "대표사업장명",
-                "사업장명"
-              ]);
-
-              const master = firstNonEmpty(row, [
-                "성명",
-                "성함"
-              ]);
-
-              if (id) {
-                map.set(id, {
-                  business: business || id,
-                  master
-                });
-              }
+        businessNameMap = new Map(
+          (data || []).map(row => [
+            row.business_id,
+            {
+              business: row.business_name || row.business_id,
+              master: row.master_name || ""
             }
-
-            businessNameMap = map;
-            resolve();
-          },
-          error(error) {
-            console.warn("mapdata.csv 연결 실패:", error);
-            resolve();
-          }
-        });
-      });
+          ])
+        );
+      } catch (error) {
+        console.warn("사업장명 연결 실패:", error);
+        businessNameMap = new Map();
+      }
     }
 
     function validateDateRange() {
