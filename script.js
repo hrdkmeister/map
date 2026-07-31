@@ -652,24 +652,24 @@ async function trackEvent(eventName, targetId = "all") {
  * CSV에 ID/사업장ID 열이 있으면 그 값을 우선 사용하고,
  * 없으면 현재 행 번호를 사용합니다.
  */
+/**
+ * CSV 행에서 통계용 사업장ID를 가져옵니다.
+ * CSV의 사업장ID 열만 사용하며 행 번호는 사용하지 않습니다.
+ */
 function getAnalyticsTargetId(row) {
-  const explicitId = getField(row, [
-    "ID",
-    "id",
+  const businessId = getField(row, [
     "사업장ID",
     "사업장 ID",
-    "business_id"
+    "business_id",
+    "businessId"
   ]);
 
-  if (explicitId) {
-    return explicitId;
+  if (businessId) {
+    return businessId;
   }
 
-  if (row && Number.isInteger(row.__index)) {
-    return `business_${row.__index + 1}`;
-  }
-
-  return "unknown";
+  console.warn("사업장ID가 없는 데이터입니다.", row);
+  return "missing_business_id";
 }
 
 setupAnonymousAnalytics();
