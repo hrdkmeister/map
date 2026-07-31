@@ -8,6 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
     * { box-sizing: border-box; }
@@ -352,7 +353,7 @@
   <main class="page-container">
     <section id="loginSection" class="login-card">
       <h2>관리자 로그인</h2>
-      <p class="login-description">설문 관리자 계정으로 로그인해 주세요.</p>
+      <p class="login-description">기존 사업장 설문 관리자 계정으로 로그인해 주세요.</p>
 
       <form id="loginForm">
         <div class="form-group">
@@ -378,6 +379,7 @@
         </div>
 
         <div class="toolbar-actions">
+          <button id="excelDownloadButton" class="action-button" type="button">엑셀 다운로드</button>
           <button id="refreshButton" class="action-button secondary" type="button">새로고침</button>
           <button id="logoutButton" class="logout-button" type="button">로그아웃</button>
         </div>
@@ -544,6 +546,7 @@
     const loginError = document.getElementById("loginError");
     const loginUserEmail = document.getElementById("loginUserEmail");
     const logoutButton = document.getElementById("logoutButton");
+    const excelDownloadButton = document.getElementById("excelDownloadButton");
     const refreshButton = document.getElementById("refreshButton");
     const applyFilterButton = document.getElementById("applyFilterButton");
     const resetFilterButton = document.getElementById("resetFilterButton");
@@ -555,6 +558,7 @@
     let eventChart = null;
     let businessNameMap = new Map();
     let dashboardInitialized = false;
+    let currentStatisticsRows = [];
 
     function formatNumber(value) {
       return Number(value || 0).toLocaleString("ko-KR");
@@ -1032,6 +1036,240 @@
       }).join("");
     }
 
+
+    function buildBusinessSummary(rows) {
+      const totals = new Map();
+
+      for (const row of rows) {
+        if (!BUSINESS_EVENTS.has(row.event_name)) {
+          continue;
+        }
+
+        const id = String(row.target_id || "").trim();
+
+        if (!id ||
+            id === "all" ||
+            id === "page" ||
+            id === "unknown" ||
+            id === "missing_business_id") {
+          continue;
+        }
+
+        if (!totals.has(id)) {
+          totals.set(id, {
+            사업장ID: id,
+            사업장명: businessNameMap.get(id)?.business || id,
+            대한민국명장: businessNameMap.get(id)?.master || "",
+            마커클릭: 0,
+            상세조회: 0,
+            네이버플레이스: 0,
+            길찾기: 0,
+            공유: 0,
+            합계: 0
+          });
+        }
+
+        const item = totals.get(id);
+        const count = Number(row.event_count || 0);
+
+        if (row.event_name === "marker_click") item.마커클릭 += count;
+        if (row.event_name === "business_detail_click") item.상세조회 += count;
+        if (row.event_name === "naver_place_click") item.네이버플레이스 += count;
+        if (row.event_name === "directions_click") item.길찾기 += count;
+        if (row.event_name === "share_click") item.공유 += count;
+
+        item.합계 += count;
+      }
+
+      return [...totals.values()]
+        .sort((a, b) => b.합계 - a.합계)
+        .map((item, index) => ({
+          순위: index + 1,
+          ...item
+        }));
+    }
+
+    function buildFilterSummary(rows) {
+      const totals = new Map();
+
+      for (const row of rows) {
+        if (row.event_name !== "category_filter" &&
+            row.event_name !== "region_filter") {
+          continue;
+        }
+
+        const type = row.event_name === "category_filter" ? "직종" : "지역";
+        const target = row.target_id || "all";
+        const key = `${type}|${target}`;
+        const current = totals.get(key) || {
+          구분: type,
+          선택값: target,
+          이용횟수: 0
+        };
+
+        current.이용횟수 += Number(row.event_count || 0);
+        totals.set(key, current);
+      }
+
+      return [...totals.values()]
+        .sort((a, b) => b.이용횟수 - a.이용횟수);
+    }
+
+    function buildEventSummary(rows) {
+      const totals = new Map();
+
+      for (const row of rows) {
+        totals.set(
+          row.event_name,
+          (totals.get(row.event_name) || 0) + Number(row.event_count || 0)
+        );
+      }
+
+      return [...totals.entries()]
+        .map(([eventName, count]) => ({
+          통계항목: EVENT_LABELS[eventName] || eventName,
+          이벤트코드: eventName,
+          이용횟수: count
+        }))
+        .sort((a, b) => b.이용횟수 - a.이용횟수);
+    }
+
+    function buildDailySummary(rows, start, end) {
+      const dates = getDateList(start, end);
+      const daily = new Map();
+
+      for (const date of dates) {
+        daily.set(date, {
+          날짜: date,
+          페이지조회: 0,
+          사업장상세조회: 0,
+          외부지도이동: 0,
+          검색실행: 0,
+          전체이용횟수: 0
+        });
+      }
+
+      for (const row of rows) {
+        if (!daily.has(row.stat_date)) {
+          continue;
+        }
+
+        const item = daily.get(row.stat_date);
+        const count = Number(row.event_count || 0);
+
+        if (row.event_name === "page_view") item.페이지조회 += count;
+        if (row.event_name === "marker_click" ||
+            row.event_name === "business_detail_click") {
+          item.사업장상세조회 += count;
+        }
+        if (row.event_name === "naver_place_click" ||
+            row.event_name === "directions_click") {
+          item.외부지도이동 += count;
+        }
+        if (row.event_name === "search_execute") item.검색실행 += count;
+
+        item.전체이용횟수 += count;
+      }
+
+      return [...daily.values()];
+    }
+
+    function setWorksheetWidths(worksheet, widths) {
+      worksheet["!cols"] = widths.map(width => ({ wch: width }));
+    }
+
+    function downloadStatisticsExcel() {
+      const range = validateDateRange();
+
+      if (!range) {
+        return;
+      }
+
+      if (!window.XLSX) {
+        alert("엑셀 생성 라이브러리를 불러오지 못했습니다. 페이지를 새로고침해 주세요.");
+        return;
+      }
+
+      if (!currentStatisticsRows.length) {
+        alert("다운로드할 통계 데이터가 없습니다.");
+        return;
+      }
+
+      excelDownloadButton.disabled = true;
+      excelDownloadButton.textContent = "엑셀 생성 중...";
+
+      try {
+        const rows = currentStatisticsRows;
+
+        const summaryData = [
+          ["대한민국명장 지도 이용통계"],
+          ["조회기간", `${range.start} ~ ${range.end}`],
+          ["생성일시", new Date().toLocaleString("ko-KR")],
+          [],
+          ["구분", "이용 횟수"],
+          ["페이지 조회", sumEvent(rows, ["page_view"])],
+          ["사업장 상세 조회", sumEvent(rows, ["marker_click", "business_detail_click"])],
+          ["외부 지도 이동", sumEvent(rows, ["naver_place_click", "directions_click"])],
+          ["검색 실행", sumEvent(rows, ["search_execute"])],
+          ["전체 이용 횟수", rows.reduce((sum, row) => sum + Number(row.event_count || 0), 0)]
+        ];
+
+        const rawData = rows.map(row => ({
+          날짜: row.stat_date || "",
+          통계항목: EVENT_LABELS[row.event_name] || row.event_name || "",
+          이벤트코드: row.event_name || "",
+          대상ID: row.target_id || "",
+          사업장명: businessNameMap.get(String(row.target_id || ""))?.business || "",
+          대한민국명장: businessNameMap.get(String(row.target_id || ""))?.master || "",
+          이용횟수: Number(row.event_count || 0),
+          최종갱신일시: row.updated_at || ""
+        }));
+
+        const workbook = XLSX.utils.book_new();
+
+        const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+        setWorksheetWidths(summarySheet, [24, 28]);
+        XLSX.utils.book_append_sheet(workbook, summarySheet, "요약");
+
+        const dailySheet = XLSX.utils.json_to_sheet(
+          buildDailySummary(rows, range.start, range.end)
+        );
+        setWorksheetWidths(dailySheet, [14, 14, 18, 16, 14, 16]);
+        XLSX.utils.book_append_sheet(workbook, dailySheet, "날짜별추이");
+
+        const eventSheet = XLSX.utils.json_to_sheet(buildEventSummary(rows));
+        setWorksheetWidths(eventSheet, [22, 26, 14]);
+        XLSX.utils.book_append_sheet(workbook, eventSheet, "기능별통계");
+
+        const businessSheet = XLSX.utils.json_to_sheet(buildBusinessSummary(rows));
+        setWorksheetWidths(businessSheet, [8, 14, 28, 16, 12, 12, 16, 12, 10, 10]);
+        XLSX.utils.book_append_sheet(workbook, businessSheet, "사업장별순위");
+
+        const filterSheet = XLSX.utils.json_to_sheet(buildFilterSummary(rows));
+        setWorksheetWidths(filterSheet, [12, 24, 14]);
+        XLSX.utils.book_append_sheet(workbook, filterSheet, "필터이용현황");
+
+        const rawSheet = XLSX.utils.json_to_sheet(rawData);
+        setWorksheetWidths(rawSheet, [14, 22, 26, 20, 28, 16, 12, 24]);
+        XLSX.utils.book_append_sheet(workbook, rawSheet, "원본데이터");
+
+        const fileName =
+          `대한민국명장_지도_이용통계_${range.start}_${range.end}.xlsx`;
+
+        XLSX.writeFile(workbook, fileName);
+        setStatus(
+          `${range.start} ~ ${range.end} 통계 엑셀 파일을 생성했습니다.`,
+          "success"
+        );
+      } catch (error) {
+        console.error("엑셀 생성 실패:", error);
+        alert(`엑셀 파일 생성에 실패했습니다: ${error.message || "알 수 없는 오류"}`);
+      } finally {
+        excelDownloadButton.disabled = false;
+        excelDownloadButton.textContent = "엑셀 다운로드";
+      }
+    }
+
     async function loadDashboard() {
       const range = validateDateRange();
 
@@ -1045,6 +1283,7 @@
 
       try {
         const rows = await fetchAllStatistics(range.start, range.end);
+        currentStatisticsRows = rows;
 
         updateSummary(rows);
         renderDailyTrend(rows, range.start, range.end);
@@ -1063,6 +1302,7 @@
         );
       } catch (error) {
         console.error("통계 조회 실패:", error);
+        currentStatisticsRows = [];
 
         setStatus(
           `통계 데이터를 불러오지 못했습니다: ${error.message || "권한과 연결 상태를 확인해 주세요."}`,
@@ -1141,6 +1381,7 @@
       showLoginScreen();
     });
 
+    excelDownloadButton.addEventListener("click", downloadStatisticsExcel);
     refreshButton.addEventListener("click", loadDashboard);
     applyFilterButton.addEventListener("click", loadDashboard);
 
