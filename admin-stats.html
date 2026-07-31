@@ -270,18 +270,15 @@
         </button>
       </div>
 
-      <div class="test-card">
-        <h2>통계 대시보드 연결 준비 완료</h2>
+<div class="test-card">
+  <h2>통계 데이터 연결 확인</h2>
 
-        <p class="success-text">
-          기존 관리자 계정 인증이 정상적으로 완료되었습니다.
-        </p>
+  <p id="statisticsStatus">
+    통계 데이터를 불러오는 중입니다.
+  </p>
 
-        <p>
-          다음 단계에서 이 영역에 날짜별 그래프, 기능별 이용통계,
-          사업장별 클릭 순위와 상세 표를 추가합니다.
-        </p>
-      </div>
+  <div id="statisticsTestResult"></div>
+</div>
     </section>
 
   </main>
@@ -341,7 +338,123 @@
       dashboardSection.classList.remove("visible");
       loginUserEmail.textContent = "";
     }
+async function loadStatisticsTest() {
+  const status =
+    document.getElementById("statisticsStatus");
 
+  const result =
+    document.getElementById("statisticsTestResult");
+
+  if (!status || !result) {
+    return;
+  }
+
+  status.textContent =
+    "통계 데이터를 불러오는 중입니다.";
+
+  result.innerHTML = "";
+
+  try {
+    const {
+      data,
+      error
+    } = await supabaseClient
+      .from("map_analytics_daily")
+      .select(
+        "stat_date,event_name,target_id,event_count,updated_at"
+      )
+      .order("stat_date", {
+        ascending: false
+      })
+      .limit(10);
+
+    if (error) {
+      console.error("통계 조회 실패:", error);
+
+      status.textContent =
+        "통계 데이터를 불러오지 못했습니다.";
+
+      result.innerHTML = `
+        <p style="color:#c62828;">
+          오류 내용: ${error.message}
+        </p>
+      `;
+
+      return;
+    }
+
+    status.textContent =
+      `통계 데이터 조회 성공: ${data.length}건 확인`;
+
+    if (data.length === 0) {
+      result.innerHTML = `
+        <p>
+          통계표는 정상적으로 연결됐지만
+          아직 저장된 통계 데이터가 없습니다.
+        </p>
+      `;
+
+      return;
+    }
+
+    const rowsHtml = data
+      .map(row => {
+        return `
+          <tr>
+            <td>${row.stat_date || "-"}</td>
+            <td>${row.event_name || "-"}</td>
+            <td>${row.target_id || "-"}</td>
+            <td>${row.event_count ?? 0}</td>
+          </tr>
+        `;
+      })
+      .join("");
+
+    result.innerHTML = `
+      <div style="overflow-x:auto; margin-top:20px;">
+        <table
+          style="
+            width:100%;
+            border-collapse:collapse;
+            font-size:14px;
+          "
+        >
+          <thead>
+            <tr style="background:#f2f4f7;">
+              <th style="padding:10px; border:1px solid #dfe4ea;">
+                날짜
+              </th>
+              <th style="padding:10px; border:1px solid #dfe4ea;">
+                통계항목
+              </th>
+              <th style="padding:10px; border:1px solid #dfe4ea;">
+                대상
+              </th>
+              <th style="padding:10px; border:1px solid #dfe4ea;">
+                횟수
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (error) {
+    console.error("통계 처리 오류:", error);
+
+    status.textContent =
+      "통계 처리 중 오류가 발생했습니다.";
+
+    result.innerHTML = `
+      <p style="color:#c62828;">
+        브라우저 개발자 도구의 콘솔을 확인해 주세요.
+      </p>
+    `;
+  }
+}
     function showDashboard(user) {
       loginSection.style.display = "none";
       dashboardSection.classList.add("visible");
@@ -350,6 +463,8 @@
         user && user.email
           ? user.email
           : "관리자 계정";
+            loadStatisticsTest();
+}
     }
 
     async function checkCurrentUser() {
