@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>대한민국명장 지도</title>
+
+<meta name="description" content="대한민국명장 사업장 위치기반 정보제공 서비스">
+<meta name="theme-color" content="#0437AB">
+
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+
+<script src="supabase-config.js"></script>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+
+<link rel="stylesheet" href="style.css">
+
+
+<style>
+  /* 상단 헤더 색상 고정 */
+  .meister-header {
+    background: #0437AB !important;
+  }
+
+  /* 사업장 관계 설명 툴팁 */
+  .category-legend-item {
+    position: relative;
+    cursor: help;
+  }
+
+  .category-legend-item:focus {
+    outline: 2px solid #0437AB;
+    outline-offset: 2px;
+  }
+
+  .category-tooltip {
+    position: fixed;
+    z-index: 3000;
+    width: min(310px, calc(100vw - 28px));
+    padding: 12px 14px;
+    border: 1px solid #cbd5e1;
+    border-top: 3px solid #0437AB;
+    border-radius: 4px;
+    background: #ffffff;
+    color: #24324a;
+    box-shadow: 0 10px 28px rgba(15, 35, 70, 0.22);
+    font-size: 13px;
+    line-height: 1.55;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(4px);
+    transition: opacity 0.14s ease, transform 0.14s ease, visibility 0.14s ease;
+    pointer-events: none;
+  }
+
+  .category-tooltip.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .category-tooltip strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #0437AB;
+    font-size: 13px;
+  }
+
+  .category-tooltip-note {
+    display: block;
+    margin-top: 7px;
+    color: #6b7280;
+    font-size: 11px;
+  }
+
+  @media (max-width: 900px) {
+    .category-legend-item {
+      cursor: pointer;
+    }
+  }
+</style>
+
+
+</head>
+
+<body>
+
+<header class="meister-header">
+
+<div class="header-inner">
+
+<div class="header-left">
+<div class="header-brand-row">
+
+<h1>대한민국명장 지도</h1>
+
+<a
+  class="meister-net-link"
+  href="https://meister.hrdkorea.or.kr/"
+  aria-label="마이스터Net 홈페이지로 이동"
+  title="마이스터Net 홈페이지로 이동"
+>
+  <img src="logo-meisternet.png" alt="마이스터Net 숙련기술인포털">
+</a>
+
+</div>
+
+<p>내 주변 대한민국명장의 사업장 정보를 한눈에 확인하세요.</p>
+
+</div>
+
+<div class="header-right">
+
+
+<button id="pageShareButton" class="header-share-button" type="button" aria-label="대한민국명장 지도 공유하기">
+  <span aria-hidden="true">↗</span>
+  <span>공유</span>
+</button>
+
+<div class="result-box">
+
+<span>검색결과</span>
+
+<div class="result-number-row">
+<strong id="resultCount">0</strong>
+<em>개 사업장</em>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</header>
+
+<div class="container">
+
+<aside>
+
+<div class="logo-card">
+
+<span class="logo-card-label">운영기관</span>
+
+<img src="logo-hrdk.png" alt="한국산업인력공단 글로벌숙련기술진흥원">
+
+</div>
+
+<div class="card">
+
+<h2>검색</h2>
+
+<input
+id="searchInput"
+type="text"
+placeholder="대한민국명장, 직종, 사업장명 검색">
+
+<div class="button-area">
+
+<button id="searchButton">
+
+검색
+
+</button>
+
+<button id="resetButton">
+
+초기화
+
+</button>
+
+</div>
+
+<button id="nearbyButton" class="nearby-button" type="button">
+
+📍 내 주변 대한민국명장 찾기
+
+</button>
+
+</div>
+
+<div class="card">
+
+<div class="card-title-row">
+
+<h2>직종 · 지역</h2>
+
+<div class="filter-controls">
+
+<select id="regionFilterSelect" class="region-select">
+<option value="">지역 전체</option>
+</select>
+
+<button id="jobFilterResetButton" class="small-reset-button">
+전체
+</button>
+
+</div>
+
+</div>
+
+<div class="legend" id="jobFilterArea">
+
+<button class="job-filter-button" data-job-filter="bakery" type="button">
+
+<span class="legend-circle bakery">
+
+🍰
+
+</span>
+
+<span>제과·제빵</span>
+
+</button>
+
+<button class="job-filter-button" data-job-filter="cooking" type="button">
+
+<span class="legend-circle cooking">
+
+👨‍🍳
+
+</span>
+
+<span>요리</span>
+
+</button>
+
+<button class="job-filter-button" data-job-filter="car" type="button">
+
+<span class="legend-circle car">
+
+🚗
+
+</span>
+
+<span>자동차정비</span>
+
+</button>
+
+</div>
+
+</div>
+
+
+<div class="card category-guide-card">
+
+<div class="category-guide-title">
+
+<h2>사업장 관계</h2>
+
+<span>지도 아이콘 색상</span>
+
+</div>
+
+<div class="category-legend">
+
+<div class="category-legend-item" tabindex="0" role="button" aria-label="직접운영 설명 보기" data-category-title="직접운영" data-category-description="대한민국명장이 직접 소유하거나 운영하는 사업장입니다.">
+<span class="category-color-dot direct"></span>
+<span>직접운영</span>
+</div>
+
+<div class="category-legend-item" tabindex="0" role="button" aria-label="기술적용 설명 보기" data-category-title="기술적용" data-category-description="대한민국명장의 기술과 운영 기준을 적용하고, 명장이 기술·품질 관리에 참여하는 사업장입니다.">
+<span class="category-color-dot managed"></span>
+<span>기술적용</span>
+</div>
+
+<div class="category-legend-item" tabindex="0" role="button" aria-label="기술전수 설명 보기" data-category-title="기술전수" data-category-description="대한민국명장에게 기술 전수·자문을 받았거나 명장의 레시피·노하우를 활용하는 사업장입니다.">
+<span class="category-color-dot transfer"></span>
+<span>기술전수</span>
+</div>
+
+<div class="category-legend-item" tabindex="0" role="button" aria-label="재직기업 설명 보기" data-category-title="재직기업" data-category-description="대한민국명장이 임직원 등으로 재직하며 전문성을 발휘하고 있는 기업·기관입니다.">
+<span class="category-color-dot affiliation"></span>
+<span>재직기업</span>
+</div>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>대한민국명장 목록</h2>
+
+<div id="masterList">
+
+</div>
+
+</div>
+
+</aside>
+
+<main>
+
+<section class="map-panel">
+
+<div class="map-panel-header">
+
+<div>
+<span class="map-panel-kicker">대한민국명장 사업장 위치정보</span>
+<h2>대한민국명장의 사업장을 소개합니다.</h2>
+</div>
+
+<p>마커를 선택하면 사업장 관계, 대한민국명장, 직종 및 대표품목을 확인할 수 있습니다.</p>
+
+</div>
+
+<div class="map-wrapper">
+
+<div id="map">
+
+</div>
+
+<div id="mapTapOverlay" class="map-tap-overlay">
+
+<span>지도를 터치하면 움직일 수 있어요</span>
+
+</div>
+
+<div id="mapWheelHint" class="map-wheel-hint">
+
+Ctrl(⌘) + 스크롤로 지도를 확대/축소할 수 있어요
+
+</div>
+
+</div>
+
+</section>
+
+</main>
+
+</div>
+
+<footer class="site-footer">
+  <div class="site-footer-inner">
+  <p class="footer-copy">
+  © 2026 HRDKOREA 글로벌숙련기술진흥원 ·
+  <a href="#" id="noticeReopenLink">이용 안내 보기</a>
+  · 문의 :
+  <a href="tel:032-509-1836">032-509-1836</a>
+</p>
+  </div>
+</footer>
+
+<div id="noticeModal" class="notice-overlay">
+    <div class="notice-box">
+        <h3>대한민국명장 사업장 지도 이용안내</h3>
+
+        <p>
+            본 서비스는 대한민국명장과 관련된 사업장 정보를 국민에게 제공하기 위한 안내 서비스입니다.
+            지도에 표시된 사업장은 대한민국명장 본인 또는 해당 사업장의 정보공개 동의를 받아 등재하였으며,
+            공개 동의 및 정보 확인이 완료된 사업장을 우선 제공하고 있어 대한민국명장 전체 사업장을 의미하지 않습니다.
+        </p>
+
+        <p>
+            사업장별로 명장 직접 운영, 명장 기술 적용, 기술전수·자문 등 명장과의 관계가 서로 다를 수 있으므로,
+            상세정보에 표시된 관계 유형을 확인하시기 바랍니다.
+        </p>
+
+        <p>
+            한국산업인력공단은 지도에 등재된 사업장의 상품·서비스 품질, 가격, 영업상태 또는 이용 결과를
+            보증하거나 특정 사업장의 이용을 추천하지 않습니다.
+            방문 전 영업시간, 휴무일, 예약 필요 여부 등 최신 정보는 해당 사업장에 직접 확인하시기 바랍니다.
+        </p>
+
+        <p>
+            사업장 이전·폐업, 명장과의 관계 변경 등으로 실제 정보와 차이가 발생할 수 있으며,
+            정보의 수정·삭제 또는 공개 철회를 요청하는 경우 확인 후 반영합니다.
+        </p>
+
+        <p class="notice-contact">
+            정보 수정·삭제 문의:
+            한국산업인력공단 글로벌숙련기술진흥원
+            <a href="tel:032-509-1836">☎ 032-509-1836</a>
+        </p>
+
+        <div class="notice-footer-row">
+            <label class="notice-checkbox">
+                <input type="checkbox" id="noticeDontShowToday">
+                <span>오늘 하루 보지 않기</span>
+            </label>
+
+            <button
+                id="noticeCloseButton"
+                class="notice-close-button"
+                type="button"
+            >
+                확인
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<div id="categoryTooltip" class="category-tooltip" role="tooltip" aria-hidden="true">
+  <strong id="categoryTooltipTitle"></strong>
+  <span id="categoryTooltipText"></span>
+  <span class="category-tooltip-note">※ 대한민국명장과 해당 사업장 간의 관계를 기준으로 구분한 정보입니다.</span>
+</div>
+
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<!-- Supabase 익명 이용통계용 라이브러리 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="script-supabase.js"></script>
+
+
+<script>
+(function () {
+  const tooltip = document.getElementById("categoryTooltip");
+  const titleEl = document.getElementById("categoryTooltipTitle");
+  const textEl = document.getElementById("categoryTooltipText");
+  const items = document.querySelectorAll(".category-legend-item");
+  let activeItem = null;
+
+  if (!tooltip || !titleEl || !textEl || items.length === 0) {
+    return;
+  }
+
+  function positionTooltip(item) {
+    const rect = item.getBoundingClientRect();
+    const gap = 8;
+    const tooltipWidth = Math.min(310, window.innerWidth - 28);
+
+    let left = rect.left;
+    let top = rect.bottom + gap;
+
+    if (left + tooltipWidth > window.innerWidth - 14) {
+      left = window.innerWidth - tooltipWidth - 14;
+    }
+
+    if (left < 14) {
+      left = 14;
+    }
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+
+    requestAnimationFrame(() => {
+      const tooltipRect = tooltip.getBoundingClientRect();
+
+      if (tooltipRect.bottom > window.innerHeight - 14) {
+        const aboveTop = rect.top - tooltipRect.height - gap;
+        tooltip.style.top = `${Math.max(14, aboveTop)}px`;
+      }
+    });
+  }
+
+  function showTooltip(item) {
+    activeItem = item;
+    titleEl.textContent = item.dataset.categoryTitle || "";
+    textEl.textContent = item.dataset.categoryDescription || "";
+    positionTooltip(item);
+    tooltip.classList.add("visible");
+    tooltip.setAttribute("aria-hidden", "false");
+  }
+
+  function hideTooltip() {
+    activeItem = null;
+    tooltip.classList.remove("visible");
+    tooltip.setAttribute("aria-hidden", "true");
+  }
+
+  items.forEach(item => {
+    item.addEventListener("mouseenter", () => showTooltip(item));
+    item.addEventListener("mouseleave", hideTooltip);
+    item.addEventListener("focus", () => showTooltip(item));
+    item.addEventListener("blur", hideTooltip);
+
+    item.addEventListener("click", event => {
+      event.stopPropagation();
+
+      if (activeItem === item && tooltip.classList.contains("visible")) {
+        hideTooltip();
+      } else {
+        showTooltip(item);
+      }
+    });
+
+    item.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        item.click();
+      }
+
+      if (event.key === "Escape") {
+        hideTooltip();
+      }
+    });
+  });
+
+  document.addEventListener("click", hideTooltip);
+
+  window.addEventListener("resize", () => {
+    if (activeItem) {
+      positionTooltip(activeItem);
+    }
+  });
+
+  window.addEventListener("scroll", () => {
+    if (activeItem) {
+      positionTooltip(activeItem);
+    }
+  }, true);
+})();
+</script>
+
+
+</body>
+
+</html>
