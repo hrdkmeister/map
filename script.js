@@ -281,6 +281,49 @@ function getText(value) {
   return String(value).trim();
 }
 
+
+function escapeHtml(value) {
+  return getText(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function getSafeNaverUrl(value, fallbackQuery = "") {
+  const fallback =
+    `https://map.naver.com/p/search/${encodeURIComponent(getText(fallbackQuery))}`;
+
+  const raw = getText(value);
+
+  if (!raw) {
+    return fallback;
+  }
+
+  try {
+    const url = new URL(raw);
+
+    if (url.protocol !== "https:") {
+      return fallback;
+    }
+
+    const allowedHosts = new Set([
+      "naver.me",
+      "map.naver.com",
+      "m.map.naver.com",
+      "place.naver.com",
+      "m.place.naver.com"
+    ]);
+
+    return allowedHosts.has(url.hostname.toLowerCase())
+      ? url.href
+      : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function getField(row, names) {
   for (const name of names) {
     const value = getText(row[name]);
@@ -541,9 +584,9 @@ function getBusinessCategoryInfo(row) {
 function makeCustomIcon(job, categoryInfo, isSelected) {
   const emoji = getJobEmoji(job);
   const selectedClass = isSelected ? "selected" : "";
-  const categoryClass = categoryInfo && categoryInfo.className
-    ? categoryInfo.className
-    : "unknown";
+  const categoryClass = escapeHtmlAttr(
+    categoryInfo && categoryInfo.className ? categoryInfo.className : "unknown"
+  );
 
   return L.divIcon({
     className: "custom-marker",
@@ -753,15 +796,17 @@ function makePopup(row) {
   ]);
 
   const placeQuery = `${business || name} ${address}`.trim();
-  const naverPlaceUrl = naverPlaceLink || `https://map.naver.com/p/search/${encodeURIComponent(placeQuery)}`;
+  const naverPlaceUrl = getSafeNaverUrl(naverPlaceLink, placeQuery);
   const naverDirectionsUrl = makeNaverDirectionsUrl(row, business || name, address);
   const analyticsTargetId = escapeHtmlAttr(getAnalyticsTargetId(row));
   const shareTitle = escapeHtmlAttr(business || "대한민국명장 지도");
-  const shareText = escapeHtmlAttr(`${business || "사업장"} - ${name ? "대한민국명장 " + name + " · " : ""}${getJobLabel(job)}${year ? " · " + year + "년 선정" : ""}`);
+  const shareText = escapeHtmlAttr(`${business || "사업장"} - ${name ? "대한민국명장 " + name + " · " : ""}${escapeHtml(getJobLabel(job))}${year ? " · " + year + "년 선정" : ""}`);
   const shareUrl = escapeHtmlAttr(naverPlaceUrl || window.location.href);
   const categoryInfo = getBusinessCategoryInfo(row);
+  const safeCategoryClass = escapeHtmlAttr(categoryInfo && categoryInfo.className ? categoryInfo.className : "unknown");
+  const safeCategoryLabel = escapeHtml(categoryInfo && categoryInfo.label ? categoryInfo.label : "미분류");
   const categoryBadge = categoryInfo
-    ? `<span class="business-category-badge ${categoryInfo.className}">${categoryInfo.label}</span>`
+    ? `<span class="business-category-badge ${safeCategoryClass}">${safeCategoryLabel}</span>`
     : "";
 
   return `
@@ -774,7 +819,7 @@ function makePopup(row) {
         <div>
           <div class="popup-title-row">
             <div class="popup-title">
-              ${business || "사업장명 없음"}
+              ${escapeHtml(business || "사업장명 없음")}
             </div>
             ${categoryBadge}
           </div>
@@ -784,29 +829,29 @@ function makePopup(row) {
 
       <div class="popup-info-grid">
         <div class="popup-info-label">대한민국명장</div>
-        <div class="popup-info-value">${name || "-"}</div>
+        <div class="popup-info-value">${escapeHtml(name || "-")}</div>
 
         <div class="popup-info-label">직종</div>
-        <div class="popup-info-value">${getJobLabel(job)}</div>
+        <div class="popup-info-value">${escapeHtml(getJobLabel(job))}</div>
 
         <div class="popup-info-label">선정년도</div>
-        <div class="popup-info-value">${year ? year + "년" : "-"}</div>
+        <div class="popup-info-value">${escapeHtml(year ? year + "년" : "-")}</div>
       </div>
 
       <div class="popup-line">
-        <b>주소</b> ${address || "-"}
+        <b>주소</b> ${escapeHtml(address || "-")}
       </div>
 
       <div class="popup-line">
-        <b>대표품목</b> ${mainMenu || "-"}
+        <b>대표품목</b> ${escapeHtml(mainMenu || "-")}
       </div>
 
       <div class="popup-actions">
-        <a class="popup-button popup-track-link" href="${naverPlaceUrl}" target="_blank" rel="noopener" data-track-event="naver_place_click" data-target-id="${analyticsTargetId}">
+        <a class="popup-button popup-track-link" href="${escapeHtmlAttr(naverPlaceUrl)}" target="_blank" rel="noopener noreferrer" data-track-event="naver_place_click" data-target-id="${analyticsTargetId}">
           네이버 플레이스
         </a>
 
-        <a class="popup-button popup-button-secondary popup-track-link" href="${naverDirectionsUrl}" target="_blank" rel="noopener" data-track-event="directions_click" data-target-id="${analyticsTargetId}">
+        <a class="popup-button popup-button-secondary popup-track-link" href="${escapeHtmlAttr(naverDirectionsUrl)}" target="_blank" rel="noopener noreferrer" data-track-event="directions_click" data-target-id="${analyticsTargetId}">
           길찾기
         </a>
 
@@ -1089,17 +1134,17 @@ function renderMasterList(rows) {
     }
 
     item.innerHTML = `
-      <span class="legend-circle business-list-icon category-${categoryInfo.className}" title="${categoryInfo.label}">
+      <span class="legend-circle business-list-icon category-${categoryInfo.className}" title="${escapeHtmlAttr(categoryInfo.label)}">
         ${getJobEmoji(job)}
       </span>
 
       <span>
         <span class="master-name">
-          ${business || "사업장명 없음"}
+          ${escapeHtml(business || "사업장명 없음")}
         </span>
 
         <span class="master-meta">
-          ${name ? "대한민국명장 " + name + " · " : ""}${getJobLabel(job)}${distanceText}
+          ${name ? "대한민국명장 " + name + " · " : ""}${escapeHtml(getJobLabel(job))}${distanceText}
         </span>
       </span>
     `;
