@@ -336,6 +336,94 @@ function getField(row, names) {
   return "";
 }
 
+
+function getRepresentativeMenusForSearch(row) {
+  const value = row ? row["대표메뉴검색용"] : "";
+
+  if (Array.isArray(value)) {
+    return value.map(getText).filter(Boolean).join(" ");
+  }
+
+  return getText(value);
+}
+
+// 자연어 검색에서 의미 없는 표현을 제거한다.
+// 예: "인천 갈비집 알려줘" -> ["인천", "갈비집"]
+const SEARCH_STOPWORDS = new Set([
+  "알려줘", "알려주세요", "찾아줘", "찾아주세요", "검색해줘", "검색해주세요",
+  "보여줘", "보여주세요", "추천해줘", "추천해주세요",
+  "있는", "있는데", "있어", "있나요", "어디", "어디야", "어디에",
+  "파는", "판매하는", "하는", "곳", "장소",
+  "대한민국명장", "명장", "사업장", "가게", "매장"
+]);
+
+const SEARCH_SYNONYMS = {
+  "빵집": ["빵집", "빵", "제과", "제빵", "베이커리"],
+  "베이커리": ["베이커리", "빵", "제과", "제빵"],
+  "갈비집": ["갈비집", "갈비"],
+  "고깃집": ["고깃집", "고기", "육류"],
+  "고기집": ["고기집", "고기", "육류"],
+  "횟집": ["횟집", "회", "생선회"],
+  "떡집": ["떡집", "떡"],
+  "한식집": ["한식집", "한식", "요리"],
+  "한식당": ["한식당", "한식", "요리"],
+  "식당": ["식당", "음식점", "요리"],
+  "음식점": ["음식점", "식당", "요리"],
+  "카페": ["카페", "커피", "제과", "제빵"]
+};
+
+function normalizeSearchToken(value) {
+  return getText(value)
+    .toLowerCase()
+    .normalize("NFKC")
+    .replace(/[.,!?()[\]{}"'`~:;·ㆍ/\\|_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getSearchTokens(keyword) {
+  const normalized = normalizeSearchToken(keyword);
+
+  if (!normalized) {
+    return [];
+  }
+
+  return normalized
+    .split(" ")
+    .map(token => token.trim())
+    .filter(Boolean)
+    .filter(token => !SEARCH_STOPWORDS.has(token))
+    .filter(token => token.length >= 1);
+}
+
+function getSearchAlternatives(token) {
+  const alternatives = new Set([token]);
+
+  if (SEARCH_SYNONYMS[token]) {
+    SEARCH_SYNONYMS[token].forEach(value => alternatives.add(value));
+  }
+
+  // "갈비집", "빵집"처럼 '~집' 표현은 원문과 함께 '집'을 뺀 표현도 검색한다.
+  if (token.length >= 3 && token.endsWith("집")) {
+    alternatives.add(token.slice(0, -1));
+  }
+
+  return Array.from(alternatives);
+}
+
+function getRowSearchText(row) {
+  return normalizeSearchToken(`
+    ${getField(row, ["성명", "성함"])}
+    ${getText(row["직종"])}
+    ${getText(row["선정년도"])}
+    ${getField(row, ["대표사업장명", "사업장명"])}
+    ${getField(row, ["주소", "사업장 주소"])}
+    ${getField(row, ["대표품목", "주요메뉴", "대표메뉴", "주요사업"])}
+    ${getRepresentativeMenusForSearch(row)}
+    ${getField(row, ["사업장구분", "사업장 구분", "관계", "관계구분"])}
+  `);
+}
+
 function scrollMapIntoViewOnMobile() {
   const isMobile = window.matchMedia("(max-width: 900px)").matches;
 
@@ -618,8 +706,9 @@ function makeNaverDirectionsUrl(row, business, address) {
 // ============================================================
 // Supabase 익명 이용통계
 // ------------------------------------------------------------
-// - 방문자의 이름, IP 주소, 검색어 원문, 정확한 위치는 저장하지 않습니다.
-// - 날짜별 이벤트 횟수만 Supabase RPC 함수(record_map_event)에 누적합니다.
+// - 일반 이용통계에는 방문자의 이름, IP 주소, 정확한 위치를 저장하지 않습니다.
+// - 날짜별 이벤트 횟수는 Supabase RPC 함수(record_map_event)에 누적합니다.
+// - 검색 실행 시 검색어와 결과 건수는 별도 RPC(record_meister_search)에 저장할 수 있습니다.
 // - index.html의 MEISTER_ANALYTICS_CONFIG 값이 비어 있으면 자동 비활성화됩니다.
 // ============================================================
 
@@ -687,6 +776,38 @@ async function trackEvent(eventName, targetId = "all") {
     console.warn("익명 이용통계 처리 오류:", error);
   }
 }
+
+
+/**
+ * 이용자가 직접 입력한 검색어와 결과 건수를 저장합니다.
+ * - 이름/IP/정확한 위치정보는 함께 저장하지 않습니다.
+ * - Supabase의 record_meister_search RPC가 없거나 오류가 나더라도 지도 검색은 정상 동작합니다.
+ */
+async function recordSearchQuery(searchQuery, resultCount) {
+  if (!analyticsReady || !analyticsSupabaseClient) {
+    return;
+  }
+
+  const query = getText(searchQuery).slice(0, 100);
+
+  if (!query) {
+    return;
+  }
+
+  try {
+    const { error } = await analyticsSupabaseClient.rpc("record_meister_search", {
+      p_search_query: query,
+      p_result_count: Math.max(0, Number(resultCount) || 0)
+    });
+
+    if (error) {
+      console.warn("검색어 기록 실패:", error.message);
+    }
+  } catch (error) {
+    console.warn("검색어 기록 처리 오류:", error);
+  }
+}
+
 
 /**
  * CSV 행에서 통계용 내부 식별자를 생성합니다.
@@ -968,21 +1089,20 @@ function updateMasterListSelection() {
 }
 
 function rowMatchesKeyword(row, keyword) {
-  if (keyword === "") {
+  const tokens = getSearchTokens(keyword);
+
+  if (tokens.length === 0) {
     return true;
   }
 
-  const text = `
-    ${getField(row, ["성명", "성함"])}
-    ${getText(row["직종"])}
-    ${getText(row["선정년도"])}
-    ${getField(row, ["대표사업장명", "사업장명"])}
-    ${getField(row, ["주소", "사업장 주소"])}
-    ${getField(row, ["대표품목", "주요메뉴", "대표메뉴", "주요사업"])}
-    ${getField(row, ["사업장구분", "사업장 구분", "관계", "관계구분"])}
-  `.toLowerCase();
+  const searchableText = getRowSearchText(row);
 
-  return text.includes(keyword);
+  // 자연어 문장에서 추출한 모든 핵심어가 해당 사업장 정보 어딘가에 포함되면 일치.
+  // 대표메뉴검색용 데이터도 여기에는 포함되지만 화면에는 출력하지 않는다.
+  return tokens.every(token => {
+    const alternatives = getSearchAlternatives(token);
+    return alternatives.some(value => searchableText.includes(value));
+  });
 }
 
 const REGION_MAP = {
@@ -1090,10 +1210,15 @@ function applyFilters() {
 function searchRows() {
   const keyword = getText(document.getElementById("searchInput").value);
 
-  // 검색어 원문은 저장하지 않고 검색 실행 여부와 결과 유무만 기록합니다.
   trackEvent("search_execute", keyword ? "with_keyword" : "empty");
   applyFilters();
   trackEvent("search_result", currentRows.length > 0 ? "has_result" : "no_result");
+
+  // 실제 검색어와 결과 건수를 별도 검색 로그에 저장한다.
+  // 빈 검색어는 저장하지 않는다.
+  if (keyword) {
+    recordSearchQuery(keyword, currentRows.length);
+  }
 }
 
 function renderMasterList(rows) {
@@ -1363,6 +1488,10 @@ function mapSupabaseBusinessRow(row, index) {
     "대표사업장명": getText(row.business_name),
     "주소": getText(row.address),
     "대표품목": getText(row.main_item),
+    // 검색 전용: 팝업/목록에는 출력하지 않는다.
+    "대표메뉴검색용": Array.isArray(row.representative_menus)
+      ? row.representative_menus.map(getText).filter(Boolean).join(" ")
+      : getText(row.representative_menus),
     "위도": row.latitude === null || row.latitude === undefined
       ? ""
       : String(row.latitude),
