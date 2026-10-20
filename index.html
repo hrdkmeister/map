@@ -16,7 +16,17 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 
-<script src="supabase-config.js"></script>
+<!--
+  Supabase 익명 이용통계 설정
+  아래 두 값은 Supabase 연결 단계에서 실제 프로젝트 값으로 교체합니다.
+  현재 빈 값으로 두면 통계 기능만 비활성화되고 지도 서비스는 정상 작동합니다.
+-->
+<script>
+ window.MEISTER_ANALYTICS_CONFIG = {
+    supabaseUrl: "https://ikouzufqmsgjpungfnbi.supabase.co",
+    supabaseAnonKey: "sb_publishable_uwmJ6TovhD7fV7lKvIedBA_I8Yf5oH4"
+  };
+</script>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 
@@ -153,14 +163,31 @@
 
 </div>
 
-<div class="card">
+<div class="card search-card">
 
+<div class="search-title-row">
 <h2>검색</h2>
+<span class="smart-search-badge">자연어 · 위치 기반</span>
+</div>
 
+<div class="smart-search-input-wrap">
+<span class="smart-search-icon" aria-hidden="true">⌕</span>
 <input
 id="searchInput"
 type="text"
-placeholder="대한민국명장, 직종, 사업장명 검색">
+placeholder="예: 내 주변 빵집, 인천 갈비집, 서울 소금빵"
+aria-describedby="smartSearchHelp">
+</div>
+
+<p id="smartSearchHelp" class="smart-search-help">문장처럼 입력해도 됩니다. ‘내 주변·근처·가까운’을 입력하면 현재 위치를 기준으로 가까운 순으로 보여줍니다.</p>
+
+<div class="search-example-row" aria-label="검색 예시">
+<button class="search-example-chip" type="button" data-search-example="내 주변 빵집">내 주변 빵집</button>
+<button class="search-example-chip" type="button" data-search-example="인천 갈비집">인천 갈비집</button>
+<button class="search-example-chip" type="button" data-search-example="서울 소금빵">서울 소금빵</button>
+</div>
+
+<div id="searchModeStatus" class="search-mode-status" aria-live="polite" hidden></div>
 
 <div class="button-area">
 
@@ -375,6 +402,10 @@ Ctrl(⌘) + 스크롤로 지도를 확대/축소할 수 있어요
             정보의 수정·삭제 또는 공개 철회를 요청하는 경우 확인 후 반영합니다.
         </p>
 
+        <p>
+          서비스 개선을 위해 개인을 식별할 수 없는 이용통계만 집계하며, 개인정보는 수집하지 않습니다.
+        </p>
+          
         <p class="notice-contact">
             정보 수정·삭제 문의:
             한국산업인력공단 글로벌숙련기술진흥원
@@ -407,6 +438,9 @@ Ctrl(⌘) + 스크롤로 지도를 확대/축소할 수 있어요
 
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
 <!-- Supabase 익명 이용통계용 라이브러리 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
