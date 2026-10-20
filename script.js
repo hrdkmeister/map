@@ -501,6 +501,7 @@ function getRowDistanceKm(row) {
 
 function findNearbyMasters() {
   const nearbyButton = document.getElementById("nearbyButton");
+  setSearchModeStatus("📍 현재 위치를 확인하는 중입니다…", "loading");
 
   if (nearbyButton) {
     nearbyButton.disabled = true;
@@ -517,6 +518,7 @@ function findNearbyMasters() {
       showUserLocationOnMap(latitude, longitude, accuracy);
       applyFilters();
       scrollMapIntoViewOnMobile();
+      setSearchModeStatus(`📍 현재 위치 기준 · 가까운 순 · ${currentRows.length}개`, "location");
 
       if (nearbyButton) {
         nearbyButton.classList.add("active");
@@ -1215,6 +1217,36 @@ function applyFilters() {
   updateLegendStyle();
 }
 
+function getSearchModeStatusElement() {
+  return document.getElementById("searchModeStatus");
+}
+
+function setSearchModeStatus(message = "", type = "") {
+  const status = getSearchModeStatusElement();
+  if (!status) return;
+  if (!message) { status.textContent = ""; status.className = "search-mode-status"; status.hidden = true; return; }
+  status.textContent = message;
+  status.className = `search-mode-status ${type}`.trim();
+  status.hidden = false;
+}
+
+function getSearchCoreTerms(keyword) {
+  return getSearchTokens(keyword).join(" · ");
+}
+
+function setupSearchExampleChips() {
+  document.querySelectorAll(".search-example-chip").forEach(button => {
+    button.addEventListener("click", () => {
+      const input = document.getElementById("searchInput");
+      const example = getText(button.dataset.searchExample);
+      if (!input || !example) return;
+      input.value = example;
+      input.focus();
+      searchRows();
+    });
+  });
+}
+
 async function searchRows() {
   const keyword = getText(document.getElementById("searchInput").value);
   const nearbyIntent = hasNearbySearchIntent(keyword);
@@ -1223,6 +1255,8 @@ async function searchRows() {
 
   if (nearbyIntent) {
     const nearbyButton = document.getElementById("nearbyButton");
+    const coreTerms = getSearchCoreTerms(keyword) || "전체 사업장";
+    setSearchModeStatus("📍 현재 위치를 확인하는 중입니다…", "loading");
 
     if (nearbyButton) {
       nearbyButton.disabled = true;
@@ -1244,9 +1278,11 @@ async function searchRows() {
 
       applyFilters();
       scrollMapIntoViewOnMobile();
+      setSearchModeStatus(`📍 현재 위치 기준 · ${coreTerms} · 가까운 순 · ${currentRows.length}개`, "location");
       trackEvent("nearby_search_click", "natural_language");
     } catch (error) {
       console.error("자연어 위치 검색 실패:", error);
+      setSearchModeStatus("위치정보를 사용할 수 없습니다. 브라우저의 위치 권한을 허용한 뒤 다시 검색해 주세요.", "loading");
       alert(
         "현재 위치를 확인할 수 없어 주변 검색을 실행하지 못했습니다. " +
         "브라우저의 위치 권한을 허용한 뒤 다시 검색해 주세요."
@@ -1265,6 +1301,12 @@ async function searchRows() {
     }
   } else {
     applyFilters();
+    if (keyword) {
+      const coreTerms = getSearchCoreTerms(keyword) || keyword;
+      setSearchModeStatus(`⌕ 자연어 검색 · ${coreTerms} · ${currentRows.length}개`, "");
+    } else {
+      setSearchModeStatus("");
+    }
   }
 
   trackEvent("search_result", currentRows.length > 0 ? "has_result" : "no_result");
@@ -1483,6 +1525,7 @@ document.getElementById("searchButton").addEventListener("click", () => {
 document.getElementById("resetButton").addEventListener("click", () => {
   trackEvent("reset_click", "all");
   document.getElementById("searchInput").value = "";
+  setSearchModeStatus("");
   activeJobFilter = "";
   activeRegionFilter = "";
   sortByDistance = false;
@@ -1528,6 +1571,7 @@ document.getElementById("searchInput").addEventListener("keydown", event => {
 
 setupJobFilterButtons();
 setupRegionFilterSelect();
+setupSearchExampleChips();
 
 
 function mapSupabaseBusinessRow(row, index) {
