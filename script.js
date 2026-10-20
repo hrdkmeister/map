@@ -354,7 +354,10 @@ const SEARCH_STOPWORDS = new Set([
   "보여줘", "보여주세요", "추천해줘", "추천해주세요",
   "있는", "있는데", "있어", "있나요", "어디", "어디야", "어디에",
   "파는", "판매하는", "하는", "곳", "장소",
-  "대한민국명장", "명장", "사업장", "가게", "매장"
+  "대한민국명장", "명장", "사업장", "가게", "매장",
+  // 위치 기반 자연어 검색용 표현
+  "내", "내주변", "주변", "주변에", "근처", "근처에",
+  "가까운", "가까이", "인근", "인근에"
 ]);
 
 const SEARCH_SYNONYMS = {
@@ -396,10 +399,18 @@ function getSearchTokens(keyword) {
     .filter(token => token.length >= 1);
 }
 
-function getSearchAlternatives(token) {
-  const alternatives = new Set([token]);
+function hasNearbySearchIntent(keyword) {
+  const normalized = normalizeSearchToken(keyword);
 
-  if (SEARCH_SYNONYMS[token]) {
+  if (!normalized) {
+    return false;
+  }
+
+  return /(^|\s)(내\s*주변|내주변|주변|근처|가까운|가까이|인근)(\s|$)/.test(normalized);
+}
+
+function getSearchAlternatives(token) {
+  const alternatives = new Set([token]);if (SEARCH_SYNONYMS[token]) {
     SEARCH_SYNONYMS[token].forEach(value => alternatives.add(value));
   }
 
@@ -797,8 +808,7 @@ async function recordSearchQuery(searchQuery, resultCount) {
   try {
     const { error } = await analyticsSupabaseClient.rpc("record_meister_search", {
       p_search_query: query,
-      p_result_count: Math.max(0, Number(resultCount) || 0)
-    });
+      p_result_count: Math.max(0, Number(resultCount) || 0)});
 
     if (error) {
       console.warn("검색어 기록 실패:", error.message);
@@ -1197,9 +1207,7 @@ function applyFilters() {
 
       if (distanceB === null) {
         return -1;
-      }
-
-      return distanceA - distanceB;
+      }return distanceA - distanceB;
     });
   }
 
@@ -1207,15 +1215,60 @@ function applyFilters() {
   updateLegendStyle();
 }
 
-function searchRows() {
+async function searchRows() {
   const keyword = getText(document.getElementById("searchInput").value);
+  const nearbyIntent = hasNearbySearchIntent(keyword);
 
   trackEvent("search_execute", keyword ? "with_keyword" : "empty");
-  applyFilters();
+
+  if (nearbyIntent) {
+    const nearbyButton = document.getElementById("nearbyButton");
+
+    if (nearbyButton) {
+      nearbyButton.disabled = true;
+      nearbyButton.textContent = "위치 확인 중...";
+    }
+
+    try {
+      const position = await getCurrentPosition();
+      const { latitude, longitude, accuracy } = position.coords;
+
+      userCoords = { lat: latitude, lng: longitude };
+      sortByDistance = true;
+
+      showUserLocationOnMap(latitude, longitude, accuracy);
+
+      if (nearbyButton) {
+        nearbyButton.classList.add("active");
+      }
+
+      applyFilters();
+      scrollMapIntoViewOnMobile();
+      trackEvent("nearby_search_click", "natural_language");
+    } catch (error) {
+      console.error("자연어 위치 검색 실패:", error);
+      alert(
+        "현재 위치를 확인할 수 없어 주변 검색을 실행하지 못했습니다. " +
+        "브라우저의 위치 권한을 허용한 뒤 다시 검색해 주세요."
+      );
+
+      if (nearbyButton) {
+        nearbyButton.classList.remove("active");
+      }
+
+      return;
+    } finally {
+      if (nearbyButton) {
+        nearbyButton.disabled = false;
+        nearbyButton.textContent = "📍 내 주변 대한민국명장 찾기";
+      }
+    }
+  } else {
+    applyFilters();
+  }
+
   trackEvent("search_result", currentRows.length > 0 ? "has_result" : "no_result");
 
-  // 실제 검색어와 결과 건수를 별도 검색 로그에 저장한다.
-  // 빈 검색어는 저장하지 않는다.
   if (keyword) {
     recordSearchQuery(keyword, currentRows.length);
   }
