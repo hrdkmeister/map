@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>대한민국명장 지도 이용통계</title>
+
+  <script src="supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --primary: #0437ab;
+      --primary-dark: #06296f;
+      --background: #f4f6f9;
+      --card: #ffffff;
+      --line: #dfe4ea;
+      --text: #1f2937;
+      --muted: #667085;
+      --success: #157347;
+      --danger: #c62828;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Pretendard", "Noto Sans KR", Arial, sans-serif;
+      background: var(--background);
+      color: var(--text);
+    }
+
+    button, input { font: inherit; }
+
+    .page-header {
+      padding: 22px 30px;
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+      color: #fff;
+    }
+
+    .page-header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .page-header p {
+      margin: 8px 0 0;
+      font-size: 14px;
+      opacity: .9;
+    }
+
+    .page-container {
+      width: min(1280px, calc(100% - 32px));
+      margin: 32px auto 56px;
+    }
+
+    .login-card {
+      width: min(440px, 100%);
+      margin: 70px auto;
+      padding: 34px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .08);
+    }
+
+    .login-card h2 {
+      margin: 0 0 8px;
+      font-size: 23px;
+    }
+
+    .login-description {
+      margin: 0 0 26px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label,
+    .filter-item label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .form-group input,
+    .filter-control {
+      width: 100%;
+      height: 46px;
+      padding: 0 13px;
+      border: 1px solid #cfd6df;
+      border-radius: 8px;
+      background: #fff;
+      font-size: 15px;
+    }
+
+    .form-group input:focus,
+    .filter-control:focus {
+      outline: 2px solid rgba(4, 55, 171, .16);
+      border-color: var(--primary);
+    }
+
+    .login-button,
+    .logout-button,
+    .action-button {
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .login-button {
+      width: 100%;
+      height: 48px;
+      margin-top: 4px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 16px;
+    }
+
+    .login-button:disabled,
+    .action-button:disabled {
+      cursor: wait;
+      opacity: .65;
+    }
+
+    .error-message {
+      min-height: 22px;
+      margin-top: 16px;
+      color: var(--danger);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .dashboard { display: none; }
+    .dashboard.visible { display: block; }
+
+    .dashboard-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 22px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .login-user {
+      margin-top: 4px;
+      font-size: 14px;
+      color: #475467;
+    }
+
+    .logout-button {
+      padding: 10px 17px;
+      background: #e9edf5;
+      color: var(--text);
+    }
+
+    .filter-card,
+    .panel {
+      margin-top: 18px;
+      padding: 20px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+
+    .filter-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(170px, 1fr)) auto auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .filter-item label {
+      color: #475467;
+      font-size: 13px;
+    }
+
+    .action-button {
+      height: 46px;
+      padding: 0 17px;
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .action-button.secondary {
+      background: #eef2f8;
+      color: #344054;
+    }
+
+    .status-line {
+      min-height: 22px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .status-line.success { color: var(--success); }
+    .status-line.error { color: var(--danger); }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .summary-card {
+      padding: 20px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+
+    .summary-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .summary-value {
+      margin-top: 8px;
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: -.5px;
+    }
+
+    .summary-sub {
+      margin-top: 6px;
+      color: #98a2b3;
+      font-size: 12px;
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .panel h2 {
+      margin: 0 0 4px;
+      font-size: 18px;
+    }
+
+    .panel-description {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 330px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 11px 10px;
+      border-bottom: 1px solid #eaecf0;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #475467;
+      font-size: 13px;
+    }
+
+    td.number, th.number { text-align: right; }
+    tbody tr:hover { background: #f8fbff; }
+
+    .rank {
+      width: 54px;
+      text-align: center;
+      font-weight: 800;
+    }
+
+    .business-name { font-weight: 700; }
+
+    .business-id {
+      display: block;
+      margin-top: 3px;
+      color: #98a2b3;
+      font-size: 12px;
+    }
+
+    .empty-cell {
+      padding: 28px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+
+    .search-log-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .search-log-summary {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .search-query {
+      font-weight: 700;
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    .note {
+      margin-top: 12px;
+      color: #98a2b3;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 900px) {
+      .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .chart-grid { grid-template-columns: 1fr; }
+      .filter-row { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 600px) {
+      .page-header { padding: 20px; }
+      .page-header h1 { font-size: 21px; }
+      .login-card { margin-top: 35px; padding: 25px 20px; }
+      .dashboard-toolbar { align-items: flex-start; flex-direction: column; }
+      .filter-row { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: 1fr; }
+      .chart-wrap { height: 290px; }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="page-header">
+    <h1>대한민국명장 지도 이용통계</h1>
+    <p>관리자 전용 통계 대시보드</p>
+  </header>
+
+  <main class="page-container">
+    <section id="loginSection" class="login-card">
+      <h2>관리자 로그인</h2>
+      <p class="login-description">기존 사업장 설문 관리자 계정으로 로그인해 주세요.</p>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="adminEmail">이메일</label>
+          <input id="adminEmail" type="email" autocomplete="username" required>
+        </div>
+
+        <div class="form-group">
+          <label for="adminPassword">비밀번호</label>
+          <input id="adminPassword" type="password" autocomplete="current-password" required>
+        </div>
+
+        <button id="loginButton" class="login-button" type="submit">로그인</button>
+        <div id="loginError" class="error-message" aria-live="polite"></div>
+      </form>
+    </section>
+
+    <section id="dashboardSection" class="dashboard">
+      <div class="dashboard-toolbar">
+        <div>
+          <strong>관리자 로그인 완료</strong>
+          <div id="loginUserEmail" class="login-user"></div>
+        </div>
+
+        <div class="toolbar-actions">
+          <button id="excelDownloadButton" class="action-button" type="button">엑셀 다운로드</button>
+          <button id="refreshButton" class="action-button secondary" type="button">새로고침</button>
+          <button id="logoutButton" class="logout-button" type="button">로그아웃</button>
+        </div>
+      </div>
+
+      <section class="filter-card">
+        <div class="filter-row">
+          <div class="filter-item">
+            <label for="startDate">조회 시작일</label>
+            <input id="startDate" class="filter-control" type="date">
+          </div>
+
+          <div class="filter-item">
+            <label for="endDate">조회 종료일</label>
+            <input id="endDate" class="filter-control" type="date">
+          </div>
+
+          <button id="applyFilterButton" class="action-button" type="button">조회</button>
+          <button id="resetFilterButton" class="action-button secondary" type="button">최근 30일</button>
+        </div>
+
+        <div id="statisticsStatus" class="status-line">통계 데이터를 불러오는 중입니다.</div>
+      </section>
+
+      <section class="summary-grid">
+        <article class="summary-card">
+          <div class="summary-label">페이지 조회</div>
+          <div id="summaryPageView" class="summary-value">0</div>
+          <div class="summary-sub">선택 기간 누적</div>
+        </article>
+
+        <article class="summary-card">
+          <div class="summary-label">사업장 상세 조회</div>
+          <div id="summaryDetail" class="summary-value">0</div>
+          <div class="summary-sub">마커·목록 상세 클릭</div>
+        </article>
+
+        <article class="summary-card">
+          <div class="summary-label">외부 지도 이동</div>
+          <div id="summaryExternal" class="summary-value">0</div>
+          <div class="summary-sub">네이버 플레이스·길찾기</div>
+        </article>
+
+        <article class="summary-card">
+          <div class="summary-label">검색 실행</div>
+          <div id="summarySearch" class="summary-value">0</div>
+          <div class="summary-sub">검색 실행 전체</div>
+        </article>
+      </section>
+
+      <section class="chart-grid">
+        <article class="panel">
+          <h2>날짜별 이용 추이</h2>
+          <p class="panel-description">페이지 조회, 사업장 상세 조회, 외부 지도 이동 추이</p>
+          <div class="chart-wrap">
+            <canvas id="dailyTrendChart"></canvas>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2>기능별 이용 현황</h2>
+          <p class="panel-description">선택 기간 동안 기능별 누적 실행 횟수</p>
+          <div class="chart-wrap">
+            <canvas id="eventChart"></canvas>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel">
+        <h2>사업장별 이용 순위</h2>
+        <p class="panel-description">사업장 마커·상세·네이버 플레이스·길찾기·공유 클릭 합계</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="rank">순위</th>
+                <th>사업장</th>
+                <th class="number">마커</th>
+                <th class="number">상세</th>
+                <th class="number">플레이스</th>
+                <th class="number">길찾기</th>
+                <th class="number">공유</th>
+                <th class="number">합계</th>
+              </tr>
+            </thead>
+            <tbody id="businessTableBody">
+              <tr><td colspan="8" class="empty-cell">통계를 불러오는 중입니다.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="note">
+          사업장명은 같은 폴더의 mapdata.csv에 있는 사업장ID를 기준으로 자동 연결됩니다.
+        </p>
+      </section>
+
+      <section class="panel">
+        <h2>지역·직종 필터 이용 현황</h2>
+        <p class="panel-description">사용자가 선택한 지역 및 직종 필터의 누적 횟수</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>구분</th>
+                <th>선택값</th>
+                <th class="number">이용 횟수</th>
+              </tr>
+            </thead>
+            <tbody id="filterTableBody">
+              <tr><td colspan="3" class="empty-cell">통계를 불러오는 중입니다.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="search-log-toolbar">
+          <div>
+            <h2>검색어 이용 내역</h2>
+            <p class="panel-description">사용자가 실제 입력한 검색어와 검색 결과 건수를 확인합니다.</p>
+          </div>
+          <div id="searchLogCount" class="search-log-summary">0건</div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>검색일시</th>
+                <th>검색어</th>
+                <th class="number">결과 건수</th>
+              </tr>
+            </thead>
+            <tbody id="searchLogTableBody">
+              <tr><td colspan="3" class="empty-cell">검색어 내역을 불러오는 중입니다.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="note">
+          검색어는 서비스 개선을 위한 이용행태 분석 목적으로 저장되며, IP·회원정보·정확한 위치정보는 함께 저장하지 않습니다.
+        </p>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const SUPABASE_URL = window.MEISTER_SUPABASE_CONFIG.supabaseUrl;
+    const SUPABASE_PUBLISHABLE_KEY = window.MEISTER_SUPABASE_CONFIG.supabaseAnonKey;
+
+    const supabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY,
+      {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true
+        }
+      }
+    );
+
+    const EVENT_LABELS = {
+      page_view: "페이지 조회",
+      notice_close: "이용안내 닫기",
+      category_filter: "직종 필터",
+      region_filter: "지역 필터",
+      search_execute: "검색 실행",
+      search_result: "검색 결과",
+      marker_click: "마커 클릭",
+      business_detail_click: "사업장 상세",
+      naver_place_click: "네이버 플레이스",
+      directions_click: "길찾기",
+      nearby_search_click: "내 주변 찾기",
+      share_click: "공유",
+      reset_click: "초기화"
+    };
+
+    const BUSINESS_EVENTS = new Set([
+      "marker_click",
+      "business_detail_click",
+      "naver_place_click",
+      "directions_click",
+      "share_click"
+    ]);
+
+    const loginSection = document.getElementById("loginSection");
+    const dashboardSection = document.getElementById("dashboardSection");
+    const loginForm = document.getElementById("loginForm");
+    const loginButton = document.getElementById("loginButton");
+    const loginError = document.getElementById("loginError");
+    const loginUserEmail = document.getElementById("loginUserEmail");
+    const logoutButton = document.getElementById("logoutButton");
+    const excelDownloadButton = document.getElementById("excelDownloadButton");
+    const refreshButton = document.getElementById("refreshButton");
+    const applyFilterButton = document.getElementById("applyFilterButton");
+    const resetFilterButton = document.getElementById("resetFilterButton");
+    const startDateInput = document.getElementById("startDate");
+    const endDateInput = document.getElementById("endDate");
+    const statisticsStatus = document.getElementById("statisticsStatus");
+
+    let dailyTrendChart = null;
+    let eventChart = null;
+    let businessNameMap = new Map();
+    let dashboardInitialized = false;
+    let currentStatisticsRows = [];
+    let currentSearchLogRows = [];
+
+    function formatNumber(value) {
+      return Number(value || 0).toLocaleString("ko-KR");
+    }
+
+    function formatDateLocal(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function setRecent30Days() {
+      const end = new Date();
+      const start = new Date();
+      start.setDate(end.getDate() - 29);
+      startDateInput.value = formatDateLocal(start);
+      endDateInput.value = formatDateLocal(end);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function setStatus(message, type = "") {
+      statisticsStatus.textContent = message;
+      statisticsStatus.className = `status-line ${type}`.trim();
+    }
+
+    function showLoginScreen() {
+      loginSection.style.display = "block";
+      dashboardSection.classList.remove("visible");
+      loginUserEmail.textContent = "";
+    }
+
+    async function showDashboard(user) {
+      loginSection.style.display = "none";
+      dashboardSection.classList.add("visible");
+      loginUserEmail.textContent = user && user.email ? user.email : "관리자 계정";
+
+      if (!dashboardInitialized) {
+        dashboardInitialized = true;
+        setRecent30Days();
+        await loadBusinessNames();
+      }
+
+      await loadDashboard();
+    }
+
+    function firstNonEmpty(row, names) {
+      for (const name of names) {
+        const value = row[name];
+        if (value !== undefined && value !== null && String(value).trim() !== "") {
+          return String(value).trim();
+        }
+      }
+      return "";
+    }
+
+    async function loadBusinessNames() {
+      try {
+        const { data, error } = await supabaseClient
+          .from("meister_businesses")
+          .select("business_id,business_name,master_name")
+          .order("business_id");
+
+        if (error) {
+          throw error;
+        }
+
+        businessNameMap = new Map(
+          (data || []).map(row => [
+            row.business_id,
+            {
+              business: row.business_name || row.business_id,
+              master: row.master_name || ""
+            }
+          ])
+        );
+      } catch (error) {
+        console.warn("사업장명 연결 실패:", error);
+        businessNameMap = new Map();
+      }
+    }
+
+    function validateDateRange() {
+      const start = startDateInput.value;
+      const end = endDateInput.value;
+
+      if (!start || !end) {
+        setStatus("조회 시작일과 종료일을 입력해 주세요.", "error");
+        return null;
+      }
+
+      if (start > end) {
+        setStatus("조회 시작일은 종료일보다 늦을 수 없습니다.", "error");
+        return null;
+      }
+
+      return { start, end };
+    }
+
+    async function fetchAllStatistics(start, end) {
+      const pageSize = 1000;
+      let from = 0;
+      let allData = [];
+
+      while (true) {
+        const { data, error } = await supabaseClient
+          .from("map_analytics_daily")
+          .select("stat_date,event_name,target_id,event_count,updated_at")
+          .gte("stat_date", start)
+          .lte("stat_date", end)
+          .order("stat_date", { ascending: true })
+          .range(from, from + pageSize - 1);
+
+        if (error) {
+          throw error;
+        }
+
+        allData = allData.concat(data || []);
+
+        if (!data || data.length < pageSize) {
+          break;
+        }
+
+        from += pageSize;
+      }
+
+      return allData;
+    }
+
+
+    async function fetchSearchLogs(start, end) {
+      const pageSize = 1000;
+      let from = 0;
+      let allData = [];
+
+      const startIso = new Date(`${start}T00:00:00+09:00`).toISOString();
+      const endDate = new Date(`${end}T00:00:00+09:00`);
+      endDate.setDate(endDate.getDate() + 1);
+      const endExclusiveIso = endDate.toISOString();
+
+      while (true) {
+        const { data, error } = await supabaseClient
+          .from("meister_search_logs")
+          .select("id,search_query,result_count,searched_at")
+          .gte("searched_at", startIso)
+          .lt("searched_at", endExclusiveIso)
+          .order("searched_at", { ascending: false })
+          .range(from, from + pageSize - 1);
+
+        if (error) throw error;
+
+        allData = allData.concat(data || []);
+        if (!data || data.length < pageSize) break;
+        from += pageSize;
+      }
+
+      return allData;
+    }
+
+    function formatDateTimeKorean(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return date.toLocaleString("ko-KR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      });
+    }
+
+    function renderSearchLogTable(rows) {
+      const tbody = document.getElementById("searchLogTableBody");
+      const count = document.getElementById("searchLogCount");
+
+      count.textContent = `${formatNumber(rows.length)}건`;
+
+      if (!rows.length) {
+        tbody.innerHTML = `
+          <tr><td colspan="3" class="empty-cell">선택 기간에 저장된 검색어가 없습니다.</td></tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(row => `
+        <tr>
+          <td>${escapeHtml(formatDateTimeKorean(row.searched_at))}</td>
+          <td class="search-query">${escapeHtml(row.search_query || "")}</td>
+          <td class="number">${formatNumber(row.result_count)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function sumEvent(rows, eventNames) {
+      const names = new Set(eventNames);
+      return rows.reduce((sum, row) => {
+        return sum + (names.has(row.event_name) ? Number(row.event_count || 0) : 0);
+      }, 0);
+    }
+
+    function updateSummary(rows) {
+      document.getElementById("summaryPageView").textContent =
+        formatNumber(sumEvent(rows, ["page_view"]));
+
+      document.getElementById("summaryDetail").textContent =
+        formatNumber(sumEvent(rows, ["marker_click", "business_detail_click"]));
+
+      document.getElementById("summaryExternal").textContent =
+        formatNumber(sumEvent(rows, ["naver_place_click", "directions_click"]));
+
+      document.getElementById("summarySearch").textContent =
+        formatNumber(sumEvent(rows, ["search_execute"]));
+    }
+
+    function getDateList(start, end) {
+      const dates = [];
+      const current = new Date(`${start}T00:00:00`);
+      const last = new Date(`${end}T00:00:00`);
+
+      while (current <= last) {
+        dates.push(formatDateLocal(current));
+        current.setDate(current.getDate() + 1);
+      }
+
+      return dates;
+    }
+
+    function renderDailyTrend(rows, start, end) {
+      const dates = getDateList(start, end);
+      const daily = new Map();
+
+      for (const date of dates) {
+        daily.set(date, {
+          pageView: 0,
+          detail: 0,
+          external: 0
+        });
+      }
+
+      for (const row of rows) {
+        if (!daily.has(row.stat_date)) {
+          continue;
+        }
+
+        const item = daily.get(row.stat_date);
+        const count = Number(row.event_count || 0);
+
+        if (row.event_name === "page_view") {
+          item.pageView += count;
+        }
+
+        if (row.event_name === "marker_click" ||
+            row.event_name === "business_detail_click") {
+          item.detail += count;
+        }
+
+        if (row.event_name === "naver_place_click" ||
+            row.event_name === "directions_click") {
+          item.external += count;
+        }
+      }
+
+      const labels = dates.map(date => {
+        const parts = date.split("-");
+        return `${Number(parts[1])}.${Number(parts[2])}`;
+      });
+
+      const pageViewData = dates.map(date => daily.get(date).pageView);
+      const detailData = dates.map(date => daily.get(date).detail);
+      const externalData = dates.map(date => daily.get(date).external);
+
+      if (dailyTrendChart) {
+        dailyTrendChart.destroy();
+      }
+
+      dailyTrendChart = new Chart(
+        document.getElementById("dailyTrendChart"),
+        {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "페이지 조회",
+                data: pageViewData,
+                tension: .25
+              },
+              {
+                label: "사업장 상세",
+                data: detailData,
+                tension: .25
+              },
+              {
+                label: "외부 지도 이동",
+                data: externalData,
+                tension: .25
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: "index",
+              intersect: false
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  precision: 0
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                position: "bottom"
+              }
+            }
+          }
+        }
+      );
+    }
+
+    function renderEventChart(rows) {
+      const totals = new Map();
+
+      for (const row of rows) {
+        const current = totals.get(row.event_name) || 0;
+        totals.set(row.event_name, current + Number(row.event_count || 0));
+      }
+
+      const entries = [...totals.entries()]
+        .sort((a, b) => b[1] - a[1]);
+
+      const labels = entries.map(([name]) => EVENT_LABELS[name] || name);
+      const values = entries.map(([, count]) => count);
+
+      if (eventChart) {
+        eventChart.destroy();
+      }
+
+      eventChart = new Chart(
+        document.getElementById("eventChart"),
+        {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "이용 횟수",
+                data: values
+              }
+            ]
+          },
+          options: {
+            indexAxis: "y",
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                beginAtZero: true,
+                ticks: {
+                  precision: 0
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                display: false
+              }
+            }
+          }
+        }
+      );
+    }
+
+    function renderBusinessTable(rows) {
+      const totals = new Map();
+
+      for (const row of rows) {
+        if (!BUSINESS_EVENTS.has(row.event_name)) {
+          continue;
+        }
+
+        const id = String(row.target_id || "").trim();
+
+        if (!id ||
+            id === "all" ||
+            id === "page" ||
+            id === "unknown" ||
+            id === "missing_business_id") {
+          continue;
+        }
+
+        if (!totals.has(id)) {
+          totals.set(id, {
+            id,
+            marker: 0,
+            detail: 0,
+            place: 0,
+            directions: 0,
+            share: 0,
+            total: 0
+          });
+        }
+
+        const item = totals.get(id);
+        const count = Number(row.event_count || 0);
+
+        if (row.event_name === "marker_click") item.marker += count;
+        if (row.event_name === "business_detail_click") item.detail += count;
+        if (row.event_name === "naver_place_click") item.place += count;
+        if (row.event_name === "directions_click") item.directions += count;
+        if (row.event_name === "share_click") item.share += count;
+
+        item.total += count;
+      }
+
+      const list = [...totals.values()]
+        .sort((a, b) => b.total - a.total);
+
+      const tbody = document.getElementById("businessTableBody");
+
+      if (list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="empty-cell">
+              선택 기간에 사업장별 이용통계가 없습니다.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = list.map((item, index) => {
+        const info = businessNameMap.get(item.id);
+        const businessName = info ? info.business : item.id;
+        const masterText = info && info.master
+          ? ` · 대한민국명장 ${info.master}`
+          : "";
+
+        return `
+          <tr>
+            <td class="rank">${index + 1}</td>
+            <td>
+              <span class="business-name">${escapeHtml(businessName)}</span>
+              <span class="business-id">${escapeHtml(item.id + masterText)}</span>
+            </td>
+            <td class="number">${formatNumber(item.marker)}</td>
+            <td class="number">${formatNumber(item.detail)}</td>
+            <td class="number">${formatNumber(item.place)}</td>
+            <td class="number">${formatNumber(item.directions)}</td>
+            <td class="number">${formatNumber(item.share)}</td>
+            <td class="number"><strong>${formatNumber(item.total)}</strong></td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderFilterTable(rows) {
+      const totals = new Map();
+
+      for (const row of rows) {
+        if (row.event_name !== "category_filter" &&
+            row.event_name !== "region_filter") {
+          continue;
+        }
+
+        const type = row.event_name === "category_filter" ? "직종" : "지역";
+        const key = `${type}|${row.target_id}`;
+        const current = totals.get(key) || {
+          type,
+          target: row.target_id || "all",
+          count: 0
+        };
+
+        current.count += Number(row.event_count || 0);
+        totals.set(key, current);
+      }
+
+      const list = [...totals.values()]
+        .sort((a, b) => b.count - a.count);
+
+      const tbody = document.getElementById("filterTableBody");
+
+      if (list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="3" class="empty-cell">
+              선택 기간에 지역·직종 필터 이용통계가 없습니다.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = list.map(item => {
+        return `
+          <tr>
+            <td>${escapeHtml(item.type)}</td>
+            <td>${escapeHtml(item.target)}</td>
+            <td class="number">${formatNumber(item.count)}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+
+    function buildBusinessSummary(rows) {
+      const totals = new Map();
+
+      for (const row of rows) {
+        if (!BUSINESS_EVENTS.has(row.event_name)) {
+          continue;
+        }
+
+        const id = String(row.target_id || "").trim();
+
+        if (!id ||
+            id === "all" ||
+            id === "page" ||
+            id === "unknown" ||
+            id === "missing_business_id") {
+          continue;
+        }
+
+        if (!totals.has(id)) {
+          totals.set(id, {
+            사업장ID: id,
+            사업장명: businessNameMap.get(id)?.business || id,
+            대한민국명장: businessNameMap.get(id)?.master || "",
+            마커클릭: 0,
+            상세조회: 0,
+            네이버플레이스: 0,
+            길찾기: 0,
+            공유: 0,
+            합계: 0
+          });
+        }
+
+        const item = totals.get(id);
+        const count = Number(row.event_count || 0);
+
+        if (row.event_name === "marker_click") item.마커클릭 += count;
+        if (row.event_name === "business_detail_click") item.상세조회 += count;
+        if (row.event_name === "naver_place_click") item.네이버플레이스 += count;
+        if (row.event_name === "directions_click") item.길찾기 += count;
+        if (row.event_name === "share_click") item.공유 += count;
+
+        item.합계 += count;
+      }
+
+      return [...totals.values()]
+        .sort((a, b) => b.합계 - a.합계)
+        .map((item, index) => ({
+          순위: index + 1,
+          ...item
+        }));
+    }
+
+    function buildFilterSummary(rows) {
+      const totals = new Map();
+
+      for (const row of rows) {
+        if (row.event_name !== "category_filter" &&
+            row.event_name !== "region_filter") {
+          continue;
+        }
+
+        const type = row.event_name === "category_filter" ? "직종" : "지역";
+        const target = row.target_id || "all";
+        const key = `${type}|${target}`;
+        const current = totals.get(key) || {
+          구분: type,
+          선택값: target,
+          이용횟수: 0
+        };
+
+        current.이용횟수 += Number(row.event_count || 0);
+        totals.set(key, current);
+      }
+
+      return [...totals.values()]
+        .sort((a, b) => b.이용횟수 - a.이용횟수);
+    }
+
+    function buildEventSummary(rows) {
+      const totals = new Map();
+
+      for (const row of rows) {
+        totals.set(
+          row.event_name,
+          (totals.get(row.event_name) || 0) + Number(row.event_count || 0)
+        );
+      }
+
+      return [...totals.entries()]
+        .map(([eventName, count]) => ({
+          통계항목: EVENT_LABELS[eventName] || eventName,
+          이벤트코드: eventName,
+          이용횟수: count
+        }))
+        .sort((a, b) => b.이용횟수 - a.이용횟수);
+    }
+
+    function buildDailySummary(rows, start, end) {
+      const dates = getDateList(start, end);
+      const daily = new Map();
+
+      for (const date of dates) {
+        daily.set(date, {
+          날짜: date,
+          페이지조회: 0,
+          사업장상세조회: 0,
+          외부지도이동: 0,
+          검색실행: 0,
+          전체이용횟수: 0
+        });
+      }
+
+      for (const row of rows) {
+        if (!daily.has(row.stat_date)) {
+          continue;
+        }
+
+        const item = daily.get(row.stat_date);
+        const count = Number(row.event_count || 0);
+
+        if (row.event_name === "page_view") item.페이지조회 += count;
+        if (row.event_name === "marker_click" ||
+            row.event_name === "business_detail_click") {
+          item.사업장상세조회 += count;
+        }
+        if (row.event_name === "naver_place_click" ||
+            row.event_name === "directions_click") {
+          item.외부지도이동 += count;
+        }
+        if (row.event_name === "search_execute") item.검색실행 += count;
+
+        item.전체이용횟수 += count;
+      }
+
+      return [...daily.values()];
+    }
+
+    function setWorksheetWidths(worksheet, widths) {
+      worksheet["!cols"] = widths.map(width => ({ wch: width }));
+    }
+
+    function downloadStatisticsExcel() {
+      const range = validateDateRange();
+
+      if (!range) {
+        return;
+      }
+
+      if (!window.XLSX) {
+        alert("엑셀 생성 라이브러리를 불러오지 못했습니다. 페이지를 새로고침해 주세요.");
+        return;
+      }
+
+      if (!currentStatisticsRows.length && !currentSearchLogRows.length) {
+        alert("다운로드할 통계 데이터가 없습니다.");
+        return;
+      }
+
+      excelDownloadButton.disabled = true;
+      excelDownloadButton.textContent = "엑셀 생성 중...";
+
+      try {
+        const rows = currentStatisticsRows;
+
+        const summaryData = [
+          ["대한민국명장 지도 이용통계"],
+          ["조회기간", `${range.start} ~ ${range.end}`],
+          ["생성일시", new Date().toLocaleString("ko-KR")],
+          [],
+          ["구분", "이용 횟수"],
+          ["페이지 조회", sumEvent(rows, ["page_view"])],
+          ["사업장 상세 조회", sumEvent(rows, ["marker_click", "business_detail_click"])],
+          ["외부 지도 이동", sumEvent(rows, ["naver_place_click", "directions_click"])],
+          ["검색 실행", sumEvent(rows, ["search_execute"])],
+          ["전체 이용 횟수", rows.reduce((sum, row) => sum + Number(row.event_count || 0), 0)]
+        ];
+
+        const rawData = rows.map(row => ({
+          날짜: row.stat_date || "",
+          통계항목: EVENT_LABELS[row.event_name] || row.event_name || "",
+          이벤트코드: row.event_name || "",
+          대상ID: row.target_id || "",
+          사업장명: businessNameMap.get(String(row.target_id || ""))?.business || "",
+          대한민국명장: businessNameMap.get(String(row.target_id || ""))?.master || "",
+          이용횟수: Number(row.event_count || 0),
+          최종갱신일시: row.updated_at || ""
+        }));
+
+        const workbook = XLSX.utils.book_new();
+
+        const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+        setWorksheetWidths(summarySheet, [24, 28]);
+        XLSX.utils.book_append_sheet(workbook, summarySheet, "요약");
+
+        const dailySheet = XLSX.utils.json_to_sheet(
+          buildDailySummary(rows, range.start, range.end)
+        );
+        setWorksheetWidths(dailySheet, [14, 14, 18, 16, 14, 16]);
+        XLSX.utils.book_append_sheet(workbook, dailySheet, "날짜별추이");
+
+        const eventSheet = XLSX.utils.json_to_sheet(buildEventSummary(rows));
+        setWorksheetWidths(eventSheet, [22, 26, 14]);
+        XLSX.utils.book_append_sheet(workbook, eventSheet, "기능별통계");
+
+        const businessSheet = XLSX.utils.json_to_sheet(buildBusinessSummary(rows));
+        setWorksheetWidths(businessSheet, [8, 14, 28, 16, 12, 12, 16, 12, 10, 10]);
+        XLSX.utils.book_append_sheet(workbook, businessSheet, "사업장별순위");
+
+        const filterSheet = XLSX.utils.json_to_sheet(buildFilterSummary(rows));
+        setWorksheetWidths(filterSheet, [12, 24, 14]);
+        XLSX.utils.book_append_sheet(workbook, filterSheet, "필터이용현황");
+
+        const searchLogData = currentSearchLogRows.map(row => ({
+          검색일시: formatDateTimeKorean(row.searched_at),
+          검색어: row.search_query || "",
+          결과건수: Number(row.result_count || 0)
+        }));
+
+        const searchLogSheet = XLSX.utils.json_to_sheet(searchLogData);
+        setWorksheetWidths(searchLogSheet, [24, 46, 12]);
+        XLSX.utils.book_append_sheet(workbook, searchLogSheet, "검색어내역");
+
+        const rawSheet = XLSX.utils.json_to_sheet(rawData);
+        setWorksheetWidths(rawSheet, [14, 22, 26, 20, 28, 16, 12, 24]);
+        XLSX.utils.book_append_sheet(workbook, rawSheet, "원본데이터");
+
+        const fileName =
+          `대한민국명장_지도_이용통계_${range.start}_${range.end}.xlsx`;
+
+        XLSX.writeFile(workbook, fileName);
+        setStatus(
+          `${range.start} ~ ${range.end} 통계 엑셀 파일을 생성했습니다.`,
+          "success"
+        );
+      } catch (error) {
+        console.error("엑셀 생성 실패:", error);
+        alert(`엑셀 파일 생성에 실패했습니다: ${error.message || "알 수 없는 오류"}`);
+      } finally {
+        excelDownloadButton.disabled = false;
+        excelDownloadButton.textContent = "엑셀 다운로드";
+      }
+    }
+
+    async function loadDashboard() {
+      const range = validateDateRange();
+
+      if (!range) {
+        return;
+      }
+
+      refreshButton.disabled = true;
+      applyFilterButton.disabled = true;
+      setStatus("통계 데이터를 불러오는 중입니다.");
+
+      try {
+        const [rows, searchLogs] = await Promise.all([
+          fetchAllStatistics(range.start, range.end),
+          fetchSearchLogs(range.start, range.end)
+        ]);
+
+        currentStatisticsRows = rows;
+        currentSearchLogRows = searchLogs;
+
+        updateSummary(rows);
+        renderDailyTrend(rows, range.start, range.end);
+        renderEventChart(rows);
+        renderBusinessTable(rows);
+        renderFilterTable(rows);
+        renderSearchLogTable(searchLogs);
+
+        const totalCount = rows.reduce(
+          (sum, row) => sum + Number(row.event_count || 0),
+          0
+        );
+
+        setStatus(
+          `${range.start} ~ ${range.end} 통계 조회 완료 · 총 ${formatNumber(totalCount)}회 · 검색어 ${formatNumber(searchLogs.length)}건`,
+          "success"
+        );
+      } catch (error) {
+        console.error("통계 조회 실패:", error);
+        currentStatisticsRows = [];
+        currentSearchLogRows = [];
+
+        setStatus(
+          `통계 데이터를 불러오지 못했습니다: ${error.message || "권한과 연결 상태를 확인해 주세요."}`,
+          "error"
+        );
+
+        document.getElementById("businessTableBody").innerHTML = `
+          <tr><td colspan="8" class="empty-cell">통계 조회 실패</td></tr>
+        `;
+
+        document.getElementById("filterTableBody").innerHTML = `
+          <tr><td colspan="3" class="empty-cell">통계 조회 실패</td></tr>
+        `;
+
+        document.getElementById("searchLogTableBody").innerHTML = `
+          <tr><td colspan="3" class="empty-cell">검색어 내역 조회 실패</td></tr>
+        `;
+        document.getElementById("searchLogCount").textContent = "0건";
+      } finally {
+        refreshButton.disabled = false;
+        applyFilterButton.disabled = false;
+      }
+    }
+
+    async function checkCurrentUser() {
+      const { data, error } = await supabaseClient.auth.getUser();
+
+      if (error || !data || !data.user) {
+        showLoginScreen();
+        return;
+      }
+
+      await showDashboard(data.user);
+    }
+
+    loginForm.addEventListener("submit", async event => {
+      event.preventDefault();
+
+      loginError.textContent = "";
+      loginButton.disabled = true;
+      loginButton.textContent = "로그인 중...";
+
+      const email = document.getElementById("adminEmail").value.trim();
+      const password = document.getElementById("adminPassword").value;
+
+      try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (error) {
+          loginError.textContent =
+            "로그인에 실패했습니다. 이메일과 비밀번호를 확인해 주세요.";
+          return;
+        }
+
+        if (!data || !data.user) {
+          loginError.textContent = "로그인 정보를 확인하지 못했습니다.";
+          return;
+        }
+
+        await showDashboard(data.user);
+      } catch (error) {
+        console.error("관리자 로그인 오류:", error);
+        loginError.textContent = "로그인 처리 중 오류가 발생했습니다.";
+      } finally {
+        loginButton.disabled = false;
+        loginButton.textContent = "로그인";
+      }
+    });
+
+    logoutButton.addEventListener("click", async () => {
+      const { error } = await supabaseClient.auth.signOut();
+
+      if (error) {
+        alert("로그아웃 처리에 실패했습니다.");
+        return;
+      }
+
+      showLoginScreen();
+    });
+
+    excelDownloadButton.addEventListener("click", downloadStatisticsExcel);
+    refreshButton.addEventListener("click", loadDashboard);
+    applyFilterButton.addEventListener("click", loadDashboard);
+
+    resetFilterButton.addEventListener("click", () => {
+      setRecent30Days();
+      loadDashboard();
+    });
+
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      if (session && session.user) {
+        showDashboard(session.user);
+      } else {
+        showLoginScreen();
+      }
+    });
+
+    checkCurrentUser();
+  </script>
+</body>
+</html>
