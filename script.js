@@ -531,7 +531,7 @@ function findNearbyMasters() {
     .finally(() => {
       if (nearbyButton) {
         nearbyButton.disabled = false;
-        nearbyButton.textContent = "📍 내 주변 대한민국명장 찾기";
+        nearbyButton.textContent = "📍 내 주변 찾기";
       }
     });
 }
@@ -1296,7 +1296,7 @@ async function searchRows() {
     } finally {
       if (nearbyButton) {
         nearbyButton.disabled = false;
-        nearbyButton.textContent = "📍 내 주변 대한민국명장 찾기";
+        nearbyButton.textContent = "📍 내 주변 찾기";
       }
     }
   } else {
