@@ -319,32 +319,55 @@
       text-align: center;
     }
 
-
-    .search-log-toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-    }
-
-    .search-log-summary {
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .search-query {
-      font-weight: 700;
-      white-space: normal;
-      word-break: break-word;
-    }
-
     .note {
       margin-top: 12px;
       color: #98a2b3;
       font-size: 12px;
       line-height: 1.6;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    .pagination button {
+      min-width: 38px;
+      height: 36px;
+      padding: 0 10px;
+      border: 1px solid #d0d5dd;
+      border-radius: 7px;
+      background: #fff;
+      color: #344054;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .pagination button:hover:not(:disabled) {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .pagination button.active {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .pagination button:disabled {
+      cursor: default;
+      opacity: .45;
+    }
+
+    .pagination-info {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
     }
 
     @media (max-width: 900px) {
@@ -519,32 +542,27 @@
       </section>
 
       <section class="panel">
-        <div class="search-log-toolbar">
-          <div>
-            <h2>검색어 이용 내역</h2>
-            <p class="panel-description">사용자가 실제 입력한 검색어와 검색 결과 건수를 확인합니다.</p>
-          </div>
-          <div id="searchLogCount" class="search-log-summary">0건</div>
-        </div>
+        <h2>검색어 이용내역</h2>
+        <p class="panel-description">선택 기간 동안 사용자가 입력한 검색어 · 최신순 · 페이지당 50건</p>
 
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>검색일시</th>
+                <th style="width:90px;">번호</th>
                 <th>검색어</th>
-                <th class="number">결과 건수</th>
+                <th class="number" style="width:120px;">결과 건수</th>
+                <th style="width:200px;">검색 일시</th>
               </tr>
             </thead>
             <tbody id="searchLogTableBody">
-              <tr><td colspan="3" class="empty-cell">검색어 내역을 불러오는 중입니다.</td></tr>
+              <tr><td colspan="4" class="empty-cell">검색어 이용내역을 불러오는 중입니다.</td></tr>
             </tbody>
           </table>
         </div>
 
-        <p class="note">
-          검색어는 서비스 개선을 위한 이용행태 분석 목적으로 저장되며, IP·회원정보·정확한 위치정보는 함께 저장하지 않습니다.
-        </p>
+        <div id="searchLogPagination" class="pagination"></div>
+        <div id="searchLogPaginationInfo" class="pagination-info"></div>
       </section>
     </section>
   </main>
@@ -603,13 +621,19 @@
     const startDateInput = document.getElementById("startDate");
     const endDateInput = document.getElementById("endDate");
     const statisticsStatus = document.getElementById("statisticsStatus");
+    const searchLogTableBody = document.getElementById("searchLogTableBody");
+    const searchLogPagination = document.getElementById("searchLogPagination");
+    const searchLogPaginationInfo = document.getElementById("searchLogPaginationInfo");
+
+    const SEARCH_LOG_PAGE_SIZE = 50;
+    let searchLogCurrentPage = 1;
+    let searchLogTotalCount = 0;
 
     let dailyTrendChart = null;
     let eventChart = null;
     let businessNameMap = new Map();
     let dashboardInitialized = false;
     let currentStatisticsRows = [];
-    let currentSearchLogRows = [];
 
     function formatNumber(value) {
       return Number(value || 0).toLocaleString("ko-KR");
@@ -748,15 +772,60 @@
     }
 
 
-    async function fetchSearchLogs(start, end) {
+    function toKstRange(start, end) {
+      const startIso = `${start}T00:00:00+09:00`;
+      const endDate = new Date(`${end}T00:00:00+09:00`);
+      endDate.setDate(endDate.getDate() + 1);
+      return {
+        startIso,
+        endExclusiveIso: endDate.toISOString()
+      };
+    }
+
+    function formatSearchLogDate(value) {
+      if (!value) return "-";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+
+      return new Intl.DateTimeFormat("ko-KR", {
+        timeZone: "Asia/Seoul",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      }).format(date);
+    }
+
+    async function fetchSearchLogPage(start, end, page = 1) {
+      const { startIso, endExclusiveIso } = toKstRange(start, end);
+      const from = (page - 1) * SEARCH_LOG_PAGE_SIZE;
+      const to = from + SEARCH_LOG_PAGE_SIZE - 1;
+
+      const { data, error, count } = await supabaseClient
+        .from("meister_search_logs")
+        .select("id,search_query,result_count,searched_at", { count: "exact" })
+        .gte("searched_at", startIso)
+        .lt("searched_at", endExclusiveIso)
+        .order("searched_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to);
+
+      if (error) throw error;
+
+      return {
+        rows: data || [],
+        count: Number(count || 0)
+      };
+    }
+
+    async function fetchAllSearchLogs(start, end) {
+      const { startIso, endExclusiveIso } = toKstRange(start, end);
       const pageSize = 1000;
       let from = 0;
       let allData = [];
-
-      const startIso = new Date(`${start}T00:00:00+09:00`).toISOString();
-      const endDate = new Date(`${end}T00:00:00+09:00`);
-      endDate.setDate(endDate.getDate() + 1);
-      const endExclusiveIso = endDate.toISOString();
 
       while (true) {
         const { data, error } = await supabaseClient
@@ -765,11 +834,13 @@
           .gte("searched_at", startIso)
           .lt("searched_at", endExclusiveIso)
           .order("searched_at", { ascending: false })
+          .order("id", { ascending: false })
           .range(from, from + pageSize - 1);
 
         if (error) throw error;
 
         allData = allData.concat(data || []);
+
         if (!data || data.length < pageSize) break;
         from += pageSize;
       }
@@ -777,41 +848,122 @@
       return allData;
     }
 
-    function formatDateTimeKorean(value) {
-      if (!value) return "";
-      const date = new Date(value);
-      if (Number.isNaN(date.getTime())) return String(value);
-      return date.toLocaleString("ko-KR", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false
-      });
-    }
-
-    function renderSearchLogTable(rows) {
-      const tbody = document.getElementById("searchLogTableBody");
-      const count = document.getElementById("searchLogCount");
-
-      count.textContent = `${formatNumber(rows.length)}건`;
+    function renderSearchLogTable(rows, page) {
+      if (!searchLogTableBody) return;
 
       if (!rows.length) {
-        tbody.innerHTML = `
-          <tr><td colspan="3" class="empty-cell">선택 기간에 저장된 검색어가 없습니다.</td></tr>
+        searchLogTableBody.innerHTML = `
+          <tr>
+            <td colspan="4" class="empty-cell">
+              선택 기간에 저장된 검색어가 없습니다.
+            </td>
+          </tr>
         `;
         return;
       }
 
-      tbody.innerHTML = rows.map(row => `
+      const startNumber = searchLogTotalCount - ((page - 1) * SEARCH_LOG_PAGE_SIZE);
+
+      searchLogTableBody.innerHTML = rows.map((row, index) => `
         <tr>
-          <td>${escapeHtml(formatDateTimeKorean(row.searched_at))}</td>
-          <td class="search-query">${escapeHtml(row.search_query || "")}</td>
-          <td class="number">${formatNumber(row.result_count)}</td>
+          <td>${formatNumber(startNumber - index)}</td>
+          <td><strong>${escapeHtml(row.search_query || "")}</strong></td>
+          <td class="number">${formatNumber(row.result_count || 0)}</td>
+          <td>${escapeHtml(formatSearchLogDate(row.searched_at))}</td>
         </tr>
       `).join("");
+    }
+
+    function renderSearchLogPagination(page, totalCount) {
+      if (!searchLogPagination || !searchLogPaginationInfo) return;
+
+      const totalPages = Math.max(1, Math.ceil(totalCount / SEARCH_LOG_PAGE_SIZE));
+      const safePage = Math.min(Math.max(1, page), totalPages);
+
+      if (totalCount === 0) {
+        searchLogPagination.innerHTML = "";
+        searchLogPaginationInfo.textContent = "총 0건";
+        return;
+      }
+
+      const groupSize = 5;
+      const groupStart = Math.floor((safePage - 1) / groupSize) * groupSize + 1;
+      const groupEnd = Math.min(totalPages, groupStart + groupSize - 1);
+
+      const buttons = [];
+
+      buttons.push(`
+        <button type="button" data-page="${safePage - 1}" ${safePage <= 1 ? "disabled" : ""}>
+          이전
+        </button>
+      `);
+
+      for (let p = groupStart; p <= groupEnd; p += 1) {
+        buttons.push(`
+          <button type="button" data-page="${p}" class="${p === safePage ? "active" : ""}">
+            ${p}
+          </button>
+        `);
+      }
+
+      buttons.push(`
+        <button type="button" data-page="${safePage + 1}" ${safePage >= totalPages ? "disabled" : ""}>
+          다음
+        </button>
+      `);
+
+      searchLogPagination.innerHTML = buttons.join("");
+      searchLogPaginationInfo.textContent =
+        `총 ${formatNumber(totalCount)}건 · ${formatNumber(safePage)} / ${formatNumber(totalPages)} 페이지`;
+
+      searchLogPagination.querySelectorAll("button[data-page]").forEach(button => {
+        button.addEventListener("click", () => {
+          if (button.disabled) return;
+          const targetPage = Number(button.dataset.page);
+          if (!Number.isInteger(targetPage) || targetPage < 1 || targetPage > totalPages) return;
+          loadSearchLogs(targetPage);
+        });
+      });
+    }
+
+    async function loadSearchLogs(page = 1) {
+      const range = validateDateRange();
+      if (!range) return;
+
+      if (searchLogTableBody) {
+        searchLogTableBody.innerHTML =
+          `<tr><td colspan="4" class="empty-cell">검색어 이용내역을 불러오는 중입니다.</td></tr>`;
+      }
+
+      try {
+        const result = await fetchSearchLogPage(range.start, range.end, page);
+        searchLogTotalCount = result.count;
+
+        const totalPages = Math.max(1, Math.ceil(searchLogTotalCount / SEARCH_LOG_PAGE_SIZE));
+        searchLogCurrentPage = Math.min(Math.max(1, page), totalPages);
+
+        if (page !== searchLogCurrentPage && searchLogTotalCount > 0) {
+          return loadSearchLogs(searchLogCurrentPage);
+        }
+
+        renderSearchLogTable(result.rows, searchLogCurrentPage);
+        renderSearchLogPagination(searchLogCurrentPage, searchLogTotalCount);
+      } catch (error) {
+        console.error("검색어 로그 조회 실패:", error);
+
+        if (searchLogTableBody) {
+          searchLogTableBody.innerHTML = `
+            <tr>
+              <td colspan="4" class="empty-cell">
+                검색어 이용내역을 불러오지 못했습니다: ${escapeHtml(error.message || "권한과 연결 상태를 확인해 주세요.")}
+              </td>
+            </tr>
+          `;
+        }
+
+        if (searchLogPagination) searchLogPagination.innerHTML = "";
+        if (searchLogPaginationInfo) searchLogPaginationInfo.textContent = "";
+      }
     }
 
     function sumEvent(rows, eventNames) {
@@ -1271,7 +1423,7 @@
       worksheet["!cols"] = widths.map(width => ({ wch: width }));
     }
 
-    function downloadStatisticsExcel() {
+    async function downloadStatisticsExcel() {
       const range = validateDateRange();
 
       if (!range) {
@@ -1283,8 +1435,8 @@
         return;
       }
 
-      if (!currentStatisticsRows.length && !currentSearchLogRows.length) {
-        alert("다운로드할 통계 데이터가 없습니다.");
+      if (!currentStatisticsRows.length && searchLogTotalCount === 0) {
+        alert("다운로드할 통계 및 검색어 로그 데이터가 없습니다.");
         return;
       }
 
@@ -1293,6 +1445,7 @@
 
       try {
         const rows = currentStatisticsRows;
+        const searchLogs = await fetchAllSearchLogs(range.start, range.end);
 
         const summaryData = [
           ["대한민국명장 지도 이용통계"],
@@ -1304,6 +1457,7 @@
           ["사업장 상세 조회", sumEvent(rows, ["marker_click", "business_detail_click"])],
           ["외부 지도 이동", sumEvent(rows, ["naver_place_click", "directions_click"])],
           ["검색 실행", sumEvent(rows, ["search_execute"])],
+          ["저장된 검색어 로그", searchLogs.length],
           ["전체 이용 횟수", rows.reduce((sum, row) => sum + Number(row.event_count || 0), 0)]
         ];
 
@@ -1342,19 +1496,20 @@
         setWorksheetWidths(filterSheet, [12, 24, 14]);
         XLSX.utils.book_append_sheet(workbook, filterSheet, "필터이용현황");
 
-        const searchLogData = currentSearchLogRows.map(row => ({
-          검색일시: formatDateTimeKorean(row.searched_at),
-          검색어: row.search_query || "",
-          결과건수: Number(row.result_count || 0)
-        }));
-
-        const searchLogSheet = XLSX.utils.json_to_sheet(searchLogData);
-        setWorksheetWidths(searchLogSheet, [24, 46, 12]);
-        XLSX.utils.book_append_sheet(workbook, searchLogSheet, "검색어내역");
-
         const rawSheet = XLSX.utils.json_to_sheet(rawData);
         setWorksheetWidths(rawSheet, [14, 22, 26, 20, 28, 16, 12, 24]);
         XLSX.utils.book_append_sheet(workbook, rawSheet, "원본데이터");
+
+        const searchLogData = searchLogs.map((row, index) => ({
+          번호: searchLogs.length - index,
+          검색어: row.search_query || "",
+          결과건수: Number(row.result_count || 0),
+          검색일시: formatSearchLogDate(row.searched_at)
+        }));
+
+        const searchLogSheet = XLSX.utils.json_to_sheet(searchLogData);
+        setWorksheetWidths(searchLogSheet, [10, 46, 14, 24]);
+        XLSX.utils.book_append_sheet(workbook, searchLogSheet, "검색어로그");
 
         const fileName =
           `대한민국명장_지도_이용통계_${range.start}_${range.end}.xlsx`;
@@ -1385,20 +1540,15 @@
       setStatus("통계 데이터를 불러오는 중입니다.");
 
       try {
-        const [rows, searchLogs] = await Promise.all([
-          fetchAllStatistics(range.start, range.end),
-          fetchSearchLogs(range.start, range.end)
-        ]);
-
+        const rows = await fetchAllStatistics(range.start, range.end);
         currentStatisticsRows = rows;
-        currentSearchLogRows = searchLogs;
 
         updateSummary(rows);
         renderDailyTrend(rows, range.start, range.end);
         renderEventChart(rows);
         renderBusinessTable(rows);
         renderFilterTable(rows);
-        renderSearchLogTable(searchLogs);
+        await loadSearchLogs(1);
 
         const totalCount = rows.reduce(
           (sum, row) => sum + Number(row.event_count || 0),
@@ -1406,13 +1556,12 @@
         );
 
         setStatus(
-          `${range.start} ~ ${range.end} 통계 조회 완료 · 총 ${formatNumber(totalCount)}회 · 검색어 ${formatNumber(searchLogs.length)}건`,
+          `${range.start} ~ ${range.end} 통계 조회 완료 · 총 ${formatNumber(totalCount)}회`,
           "success"
         );
       } catch (error) {
         console.error("통계 조회 실패:", error);
         currentStatisticsRows = [];
-        currentSearchLogRows = [];
 
         setStatus(
           `통계 데이터를 불러오지 못했습니다: ${error.message || "권한과 연결 상태를 확인해 주세요."}`,
@@ -1427,10 +1576,11 @@
           <tr><td colspan="3" class="empty-cell">통계 조회 실패</td></tr>
         `;
 
-        document.getElementById("searchLogTableBody").innerHTML = `
-          <tr><td colspan="3" class="empty-cell">검색어 내역 조회 실패</td></tr>
-        `;
-        document.getElementById("searchLogCount").textContent = "0건";
+        if (searchLogTableBody) {
+          searchLogTableBody.innerHTML = `
+            <tr><td colspan="4" class="empty-cell">검색어 로그 조회 실패</td></tr>
+          `;
+        }
       } finally {
         refreshButton.disabled = false;
         applyFilterButton.disabled = false;
@@ -1497,11 +1647,12 @@
     });
 
     excelDownloadButton.addEventListener("click", downloadStatisticsExcel);
-    refreshButton.addEventListener("click", loadDashboard);
-    applyFilterButton.addEventListener("click", loadDashboard);
+    refreshButton.addEventListener("click", () => { searchLogCurrentPage = 1; loadDashboard(); });
+    applyFilterButton.addEventListener("click", () => { searchLogCurrentPage = 1; loadDashboard(); });
 
     resetFilterButton.addEventListener("click", () => {
       setRecent30Days();
+      searchLogCurrentPage = 1;
       loadDashboard();
     });
 
