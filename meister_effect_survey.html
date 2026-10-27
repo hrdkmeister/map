@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>대한민국명장 지도 | 사업장 정보 확인 및 효과성 조사</title>
+<style>
+:root{--blue:#0437ab;--ink:#17263c;--line:#dbe4ef;--bg:#f3f6fb}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font:15px/1.6,"Noto Sans KR","Malgun Gothic",Arial,sans-serif;color:var(--ink)}
+header{background:var(--blue);color:white;padding:27px 20px}header .inner,main{max-width:860px;margin:auto}
+header h1{font-size:24px;margin:0}header p{margin:3px 0 0;opacity:.85}
+main{padding:22px 14px 75px}.card{background:white;border:1px solid #e6edf5;border-radius:16px;padding:24px;margin-bottom:18px;box-shadow:0 3px 14px #173b6b0c}
+h2{font-size:20px;margin:0 0 12px}h3{font-size:18px;margin:0}.muted{color:#64748b;font-size:13px}.hide{display:none!important}
+.biz{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:20px 0;background:#fff}
+.biz-head{background:#edf3ff;border-bottom:1px solid #d8e5ff;padding:15px 18px;display:flex;gap:10px;align-items:center}
+.num{display:inline-flex;background:var(--blue);color:white;min-width:29px;height:29px;border-radius:50%;align-items:center;justify-content:center;font-weight:700}
+.biz-body{padding:15px 18px}.detail-row{display:grid;grid-template-columns:108px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid #edf1f6}
+.detail-row:last-child{border-bottom:0}.detail-label{color:#63758b;font-weight:600}.detail-value{overflow-wrap:anywhere}
+.menu{max-height:112px;overflow:auto;line-height:1.7;white-space:pre-wrap}.menu-edit{background:#f7faff;border:1px solid #d8e5ff;border-radius:11px;padding:13px;margin:14px 0}.menu-edit label{margin:0 0 6px}.menu-edit textarea{min-height:115px;resize:vertical}.menu-edit small{display:block;color:#63758b;margin-top:5px}
+.place{display:inline-flex;align-items:center;gap:7px;background:#ecfdf4;border:1px solid #a6e2be;color:#087a3c;border-radius:9px;padding:10px 14px;text-decoration:none;font-weight:700;margin:13px 0 4px}
+.place:hover{background:#d9f9e6}.place:focus-visible{outline:3px solid #91c6ff}
+.confirm{background:#f8fafc;border-top:1px solid var(--line);padding:16px 18px}
+.confirm-title{font-weight:700;margin:0 0 9px}.confirm select{width:100%;border:1px solid #bfcee0;background:white;padding:12px;border-radius:9px;font:inherit}
+label{display:block;font-weight:600;margin:10px 0 5px}textarea,select{font:inherit;width:100%;border:1px solid #c9d4e4;border-radius:9px;padding:11px}
+textarea{min-height:90px}fieldset{border:0;border-bottom:1px solid #edf1f6;margin:0;padding:17px 0}fieldset:last-of-type{border:0}legend{font-weight:700;padding:0}.option{font-weight:400;margin:8px 0;display:flex;gap:9px;align-items:flex-start}.option input{margin-top:5px}
+button{background:var(--blue);color:white;border:0;border-radius:9px;padding:13px 24px;font:inherit;font-weight:700;cursor:pointer}button:disabled{opacity:.5}.error{color:#b42318}.success{color:#087a3c;font-weight:700}
+@media(max-width:540px){.card{padding:17px}.detail-row{grid-template-columns:1fr;gap:1px}.detail-label{font-size:12px}.biz-head{padding:13px}.biz-body,.confirm{padding:13px}}
+</style></head>
+<body><header><div class="inner"><h1>대한민국명장 지도</h1><p>사업장 정보 현행화 및 서비스 효과성 조사</p></div></header>
+<main><section id="loading" class="card">사업장 정보를 불러오는 중입니다.</section>
+<div id="app" class="hide"><section class="card"><h2 id="welcome"></h2><p>한국산업인력공단은 대한민국명장 지도 서비스의 활용 효과를 파악하고 사업장 정보를 정확하게 유지하기 위해 본 조사를 실시합니다.</p><p class="muted">아래 각 사업장의 정보를 확인해 주세요. 수정 요청은 담당자 검토 후 반영되며 원본 지도 정보는 즉시 변경되지 않습니다.</p></section>
+<form id="form"><section class="card"><h2>01. 등록 사업장 정보 확인</h2><p class="muted">네이버 플레이스 버튼을 누르면 해당 사업장 정보를 새 창에서 확인할 수 있습니다.</p><div id="businesses"></div></section>
+<section class="card"><h2>02. 서비스 효과성 조사</h2>
+<fieldset><legend>Q1. 대한민국명장 지도 서비스를 이전부터 알고 계셨습니까?</legend>
+<label class="option"><input type="radio" name="awareness" value="이용 경험 있음" required>알고 있으며 이용한 적 있음</label>
+<label class="option"><input type="radio" name="awareness" value="인지했으나 미이용">알고 있었으나 이용한 적 없음</label>
+<label class="option"><input type="radio" name="awareness" value="이번에 처음 인지">이번에 처음 알게 됨</label></fieldset>
+<fieldset><legend>Q2. 명장 사업장 홍보와 국민 접근성 향상에 얼마나 도움이 된다고 생각하십니까?</legend>
+<select name="usefulness" required><option value="">선택해 주세요</option><option>매우 도움이 됨</option><option>도움이 됨</option><option>보통</option><option>도움이 되지 않음</option><option>전혀 도움이 되지 않음</option><option>판단 어려움</option></select></fieldset>
+<fieldset><legend>Q3. 지도 서비스를 통해 문의·방문 등 변화를 경험하셨습니까?</legend>
+<label class="option"><input type="radio" name="impact" value="문의 또는 방문 증가" required>문의 또는 방문 증가를 경험함</label>
+<label class="option"><input type="radio" name="impact" value="변화 없음">특별한 변화 없음</label>
+<label class="option"><input type="radio" name="impact" value="유입경로 확인 불가">유입 경로를 알 수 없어 판단하기 어려움</label>
+<label class="option"><input type="radio" name="impact" value="이용기간 부족">서비스를 몰랐거나 이용 기간이 짧아 판단하기 어려움</label></fieldset>
+<fieldset><legend>Q4. 우선적으로 개선할 기능은 무엇입니까? (복수 선택)</legend><div id="features"></div></fieldset>
+<label for="feedback">Q5. 기타 개선 의견</label><textarea id="feedback" name="feedback" maxlength="2000" placeholder="자유롭게 작성해 주세요."></textarea></section>
+<section class="card"><label class="option"><input type="checkbox" id="agree" required>사업장 정보 확인·수정 요청과 설문 응답을 서비스 개선 및 정보 현행화에 활용하는 데 동의합니다.</label>
+<p class="muted">같은 링크로 다시 제출하면 이전 응답이 갱신됩니다.</p><button id="submit" type="submit">응답 제출</button><p id="msg" role="status"></p></section></form></div></main>
+<script>
+const API_URL='https://ikouzufqmsgjpungfnbi.supabase.co';
+const KEY='sb_publishable_uwmJ6TovhD7fV7lKvIedBA_I8Yf5oH4';
+const token=new URLSearchParams(location.search).get('token');
+const $=id=>document.getElementById(id);
+const el=(tag,txt,cls)=>{const n=document.createElement(tag);if(txt!==undefined)n.textContent=txt;if(cls)n.className=cls;return n};
+async function rpc(name,params){
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+ try{
+  const response=await fetch(API_URL+'/rest/v1/rpc/'+name,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY},body:JSON.stringify(params),signal:controller.signal});
+  const raw=await response.text();let data;
+  try{data=JSON.parse(raw)}catch{throw Error('서버 응답을 해석할 수 없습니다 (HTTP '+response.status+')')}
+  if(!response.ok)throw Error((data.message||data.error||'API 요청 실패')+' (HTTP '+response.status+')');
+  return data;
+ }catch(e){if(e.name==='AbortError')throw Error('12초 동안 서버 응답이 없습니다.');throw e}finally{clearTimeout(timer)}
+}
+const options=['명장·사업장 소개 콘텐츠 강화','대표제품·메뉴 사진 제공','내 주변 명장 사업장 추천','체험·방문 가능 여부 표시','네이버지도 등 민간지도 연계','기타'];
+function addRow(parent,label,value,menu=false){
+ const row=el('div',undefined,'detail-row');
+ row.append(el('div',label,'detail-label'),el('div',value||'미등록','detail-value'+(menu?' menu':'')));
+ parent.append(row);
+}
+function render(data){
+ $('welcome').textContent=data.master_name+' 명장님, 안녕하세요.';
+ const wrap=$('businesses');wrap.replaceChildren();
+ (data.businesses||[]).forEach((b,i)=>{
+  const card=el('article',undefined,'biz');card.dataset.id=b.business_id;
+  const head=el('div',undefined,'biz-head');head.append(el('span',String(i+1),'num'),el('h3',b.business_name||'사업장명 미등록'));card.append(head);
+  const body=el('div',undefined,'biz-body');
+  addRow(body,'사업장명',b.business_name);
+  addRow(body,'주소',b.address);
+  addRow(body,'직종',b.job_type);
+  addRow(body,'주요 품목',b.main_item);
+  const originalMenus=Array.isArray(b.representative_menus)?b.representative_menus.map(x=>String(x).trim()).filter(Boolean):[];
+  const menuBox=el('div',undefined,'menu-edit');
+  menuBox.append(el('label','대표메뉴 직접 확인·수정'));
+  const menuInput=el('textarea');menuInput.placeholder='대표메뉴를 한 줄에 하나씩 입력해 주세요.\n예: 양념갈비\n함흥냉면';menuInput.value=(data.response?.corrections?.[b.business_id]?.menu_changed?data.response.corrections[b.business_id].representative_menus:originalMenus).join('\n');menuInput.maxLength=5000;
+  menuBox.append(menuInput,el('small','메뉴명만 한 줄에 하나씩 입력해 주세요. 설명이나 가격은 제외합니다. 기존 내용이 맞으면 수정하지 않아도 됩니다.'));
+  body.append(menuBox);card._menuInput=menuInput;card._originalMenus=originalMenus;
+  addRow(body,'운영 유형',b.relationship_type);
+  addRow(body,'상태',b.status==='active'?'운영 중':b.status);
+  if(b.naver_place_url){
+   try{
+    const url=new URL(String(b.naver_place_url).trim());
+    if(url.protocol==='https:'&&(/(^|\.)naver\.com$/.test(url.hostname)||url.hostname==='naver.me')){
+     const a=el('a','↗ 네이버 플레이스에서 확인','place');a.href=url.href;a.target='_blank';a.rel='noopener noreferrer';
+     body.append(a);
+    }else{addRow(body,'네이버 플레이스','등록된 주소를 확인할 수 없음')}
+   }catch{addRow(body,'네이버 플레이스','등록된 주소 형식 오류')}
+  }else{addRow(body,'네이버 플레이스','미등록')}
+  card.append(body);
+  const confirm=el('div',undefined,'confirm');
+  confirm.append(el('div','이 사업장 정보가 정확합니까?','confirm-title'));
+  const select=el('select');
+  [['correct','네, 모두 정확합니다'],['change','일부 정보 수정이 필요합니다'],['inactive','폐업·이전 등 등록 상태 변경이 필요합니다']].forEach(([v,t])=>{const o=el('option',t);o.value=v;select.append(o)});
+  const old=data.response?.corrections?.[b.business_id];if(old?.status)select.value=old.status;
+  confirm.append(select);
+  const noteWrap=el('div');noteWrap.append(el('label','수정이 필요한 항목과 올바른 내용을 적어 주세요.'));
+  const note=el('textarea');note.maxLength=2000;note.placeholder='예: 주소 변경, 네이버 플레이스 링크 오류, 대표메뉴 수정 등';note.value=old?.note||'';noteWrap.append(note);
+  const toggle=()=>noteWrap.classList.toggle('hide',select.value==='correct');select.addEventListener('change',toggle);toggle();
+  confirm.append(noteWrap);card.append(confirm);card._sel=select;card._note=note;wrap.append(card);
+ });
+ $('features').replaceChildren();
+ options.forEach(v=>{const label=el('label',undefined,'option'),input=el('input');input.type='checkbox';input.name='features';input.value=v;label.append(input,document.createTextNode(v));$('features').append(label)});
+ const a=data.response?.answers;
+ if(a){
+  document.querySelectorAll('[name=awareness],[name=impact]').forEach(input=>input.checked=a[input.name]===input.value);
+  document.querySelector('[name=usefulness]').value=a.usefulness||'';
+  document.querySelector('[name=feedback]').value=a.feedback||'';
+  document.querySelectorAll('[name=features]').forEach(input=>input.checked=(a.features||[]).includes(input.value));
+ }
+ $('loading').classList.add('hide');$('app').classList.remove('hide');
+}
+async function init(){
+ if(!token||!/^[a-f0-9]{48}$/.test(token)){$('loading').textContent='올바른 설문 링크로 접속해 주세요.';return}
+ try{const data=await rpc('meister_effect_open',{p_token:token});if(data?.error)throw Error('유효하지 않거나 만료된 설문 링크입니다.');render(data)}
+ catch(e){$('loading').textContent='조회 실패: '+e.message}
+}
+$('form').addEventListener('submit',async event=>{
+ event.preventDefault();
+ const f=event.currentTarget,btn=$('submit'),msg=$('msg');
+ const answers={awareness:f.elements.awareness.value,usefulness:f.elements.usefulness.value,impact:f.elements.impact.value,features:[...f.querySelectorAll('[name=features]:checked')].map(x=>x.value),feedback:f.elements.feedback.value};
+ const corrections={};
+ for(const card of document.querySelectorAll('.biz')){
+  if(card._sel.value!=='correct'&&!card._note.value.trim()){msg.textContent='수정이 필요한 사업장의 변경 내용을 입력해 주세요.';msg.className='error';return}
+  const menus=card._menuInput.value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  if(menus.length>60||menus.some(s=>s.length>120)){msg.textContent='대표메뉴는 최대 60개, 메뉴명당 120자 이내로 입력해 주세요.';msg.className='error';card._menuInput.focus();return}
+  const menuChanged=JSON.stringify(menus)!==JSON.stringify(card._originalMenus);
+  corrections[card.dataset.id]={status:card._sel.value,note:card._note.value.trim(),...(menuChanged?{menu_changed:true,original_menus:card._originalMenus,representative_menus:menus}:{})};
+ }
+ btn.disabled=true;msg.textContent='저장 중...';msg.className='';
+ try{await rpc('meister_effect_submit',{p_token:token,p_answers:answers,p_corrections:corrections});msg.textContent='응답이 저장되었습니다. 감사합니다.';msg.className='success'}
+ catch(e){msg.textContent='저장 실패: '+e.message;msg.className='error'}finally{btn.disabled=false}
+});
+init();
+</script></body></html>
