@@ -17,8 +17,9 @@ main{width:min(1400px,calc(100% - 28px));margin:24px auto 50px}.card{background:
 .table-wrap{overflow:auto;max-height:58vh}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px;border-bottom:1px solid #eaecf0;text-align:left;white-space:nowrap}th{position:sticky;top:0;background:#f8fafc;z-index:1}
 .link-btn{border:0;background:none;color:#0437ab;font-weight:800;cursor:pointer}.badge{display:inline-block;padding:3px 7px;border-radius:10px;font-size:11px;background:#eef2f8}.badge.off{background:#fdecec;color:#a61b1b}
 .form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.field label{display:block;margin-bottom:6px;font-size:12px;font-weight:800;color:#475467}.field.full{grid-column:1/-1}.field textarea{min-height:72px;resize:vertical}
+.map-url-row{display:grid;grid-template-columns:1fr auto;gap:8px}.map-url-row .btn{white-space:nowrap}.field-hint{margin-top:6px;color:#667085;font-size:11px;line-height:1.5}.field-hint code{padding:1px 4px;border-radius:4px;background:#f2f4f7;color:#344054}.coord-message{margin-top:6px;min-height:18px;font-size:12px;color:#157347}.coord-message.error{color:#b42318}
 .form-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.message{min-height:22px;margin-top:12px;font-size:13px}
-@media(max-width:850px){.form-grid{grid-template-columns:1fr 1fr}}@media(max-width:560px){.form-grid{grid-template-columns:1fr}header{padding:18px}main{width:calc(100% - 18px)}}
+@media(max-width:850px){.form-grid{grid-template-columns:1fr 1fr}}@media(max-width:560px){.form-grid{grid-template-columns:1fr}.map-url-row{grid-template-columns:1fr}.map-url-row .btn{width:100%}header{padding:18px}main{width:calc(100% - 18px)}}
 </style>
 </head>
 <body>
@@ -74,6 +75,15 @@ main{width:min(1400px,calc(100% - 28px));margin:24px auto 50px}.card{background:
   <label>대표메뉴(검색용) <span style="font-weight:400;color:#667085">· 한 줄에 하나씩 입력</span></label>
   <textarea id="representative_menus" placeholder="예)&#10;소금빵&#10;몽블랑&#10;마늘바게트"></textarea>
 </div>
+<div class="field full">
+  <label>구글맵 URL <span style="font-weight:400;color:#667085">· 좌표 자동추출용(저장하지 않음)</span></label>
+  <div class="map-url-row">
+    <input id="google_maps_url" type="text" inputmode="url" autocomplete="off" placeholder="구글맵에서 사업장을 연 뒤 주소창의 전체 URL을 붙여넣으세요">
+    <button id="extractCoordsBtn" class="btn secondary" type="button">좌표 추출</button>
+  </div>
+  <div class="field-hint">전체 Google Maps URL의 <code>@위도,경도</code> 또는 좌표 파라미터를 읽어 아래 위도·경도에 자동 반영합니다. <code>maps.app.goo.gl</code> 같은 단축 공유링크는 좌표가 URL에 없어 자동 추출되지 않을 수 있습니다.</div>
+  <div id="coordMessage" class="coord-message" aria-live="polite"></div>
+</div>
 <div class="field"><label>위도</label><input id="latitude" type="number" step="any" required></div>
 <div class="field"><label>경도</label><input id="longitude" type="number" step="any" required></div>
 <div class="field"><label>운영상태</label><select id="status"><option value="active">운영</option><option value="hidden">비공개</option><option value="closed">폐업</option><option value="checking">정보확인중</option></select></div>
@@ -95,6 +105,76 @@ const client=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{a
 let rows=[];let editingId=null;
 const $=id=>document.getElementById(id);
 function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+
+function validKoreaCoords(lat,lng){
+ return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=33&&lat<=39&&lng>=124&&lng<=132;
+}
+
+function extractGoogleMapsCoords(raw){
+ const text=String(raw||"").trim();
+ if(!text)return null;
+
+ let decoded=text;
+ try{decoded=decodeURIComponent(text)}catch(_){}
+ const candidates=[];
+ let m;
+
+ // 일반 Google Maps 주소창 URL: .../@37.123456,127.123456,17z
+ m=decoded.match(/@(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)(?:[,/]|$)/);
+ if(m)candidates.push([Number(m[1]),Number(m[2])]);
+
+ // Google Maps 내부 data 파라미터: !3d37.123456!4d127.123456
+ m=decoded.match(/!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/);
+ if(m)candidates.push([Number(m[1]),Number(m[2])]);
+
+ // query/q/ll/center 파라미터에 좌표가 있는 경우
+ try{
+   const u=new URL(text);
+   for(const key of ["query","q","ll","center"]){
+     const value=u.searchParams.get(key);
+     if(!value)continue;
+     const cm=value.match(/(-?\d{1,2}(?:\.\d+)?)[,\s]+(-?\d{1,3}(?:\.\d+)?)/);
+     if(cm)candidates.push([Number(cm[1]),Number(cm[2])]);
+   }
+ }catch(_){}
+
+ // URL 경로 등에 위도,경도 쌍이 직접 들어간 경우
+ for(const cm of decoded.matchAll(/(?:^|[^\d.-])(-?\d{1,2}\.\d{4,})[,\s]+(-?\d{1,3}\.\d{4,})(?=$|[^\d.])/g)){
+   candidates.push([Number(cm[1]),Number(cm[2])]);
+ }
+
+ for(const [lat,lng] of candidates){
+   if(validKoreaCoords(lat,lng))return {lat,lng};
+ }
+ return null;
+}
+
+function applyCoordsFromGoogleUrl(){
+ const raw=$("google_maps_url").value.trim();
+ const message=$("coordMessage");
+ message.classList.remove("error");
+
+ if(!raw){
+   message.textContent="구글맵 URL을 붙여넣어 주세요.";
+   message.classList.add("error");
+   return false;
+ }
+
+ const coords=extractGoogleMapsCoords(raw);
+ if(!coords){
+   message.textContent=raw.includes("maps.app.goo.gl")
+     ?"단축 공유링크에는 좌표가 없어 자동 추출하기 어렵습니다. 링크를 연 뒤 브라우저 주소창의 전체 Google Maps URL을 복사해 붙여넣어 주세요."
+     :"이 URL에서 대한민국 범위의 위도·경도를 찾지 못했습니다. 구글맵에서 해당 위치를 연 뒤 주소창의 전체 URL을 복사해 주세요.";
+   message.classList.add("error");
+   return false;
+ }
+
+ $("latitude").value=coords.lat.toFixed(7).replace(/0+$/,"").replace(/\.$/,"");
+ $("longitude").value=coords.lng.toFixed(7).replace(/0+$/,"").replace(/\.$/,"");
+ message.textContent=`좌표 자동입력 완료 · 위도 ${$("latitude").value}, 경도 ${$("longitude").value}`;
+ return true;
+}
+
 function showApp(user){$("loginCard").classList.add("hidden");$("app").classList.remove("hidden");$("userEmail").textContent=user.email||"";loadRows()}
 function showLogin(){$("loginCard").classList.remove("hidden");$("app").classList.add("hidden")}
 async function loadRows(){
@@ -124,9 +204,12 @@ function openForm(row=null){
    ? (Array.isArray(row.representative_menus) ? row.representative_menus.join("\n") : (row.representative_menus ?? ""))
    : "";
  $("is_public").checked=row?Boolean(row.is_public):true;
+ $("google_maps_url").value="";
+ $("coordMessage").textContent="";
+ $("coordMessage").classList.remove("error");
  $("business_id").readOnly=Boolean(row);$("editCard").classList.remove("hidden");$("editCard").scrollIntoView({behavior:"smooth"});
 }
-function closeForm(){$("editCard").classList.add("hidden");$("businessForm").reset();editingId=null;$("saveMessage").textContent=""}
+function closeForm(){$("editCard").classList.add("hidden");$("businessForm").reset();editingId=null;$("saveMessage").textContent="";$("coordMessage").textContent="";$("coordMessage").classList.remove("error")}
 $("loginForm").addEventListener("submit",async e=>{e.preventDefault();$("loginMessage").textContent="";
  const {data,error}=await client.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
  if(error){$("loginMessage").textContent="로그인 실패: "+error.message;return}showApp(data.user);
@@ -135,6 +218,9 @@ $("logoutBtn").onclick=async()=>{await client.auth.signOut();showLogin()};
 $("searchInput").addEventListener("input",render);
 $("addBtn").onclick=()=>openForm();
 $("cancelBtn").onclick=closeForm;
+$("extractCoordsBtn").onclick=applyCoordsFromGoogleUrl;
+$("google_maps_url").addEventListener("paste",()=>setTimeout(applyCoordsFromGoogleUrl,0));
+$("google_maps_url").addEventListener("change",applyCoordsFromGoogleUrl);
 $("businessBody").addEventListener("click",e=>{const b=e.target.closest("[data-id]");if(!b)return;openForm(rows.find(r=>r.business_id===b.dataset.id))});
 $("businessForm").addEventListener("submit",async e=>{e.preventDefault();$("saveMessage").textContent="저장 중...";
  const payload={
