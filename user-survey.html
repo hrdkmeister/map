@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>대한민국명장 사업장 지도 이용자 의견조사</title>
+<meta name="description" content="대한민국명장 사업장 지도 이용자 의견조사">
+<script src="supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box} :root{--blue:#0437ab;--navy:#06296f;--bg:#f4f7fb;--line:#dde4ed;--text:#172033;--muted:#667085;--soft:#f7f9fc}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Pretendard","Noto Sans KR",Arial,sans-serif;line-height:1.55}
+.wrap{width:min(720px,calc(100% - 28px));margin:0 auto;padding:30px 0 60px}
+.hero{padding:26px 24px;border-radius:18px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;box-shadow:0 12px 28px rgba(4,55,171,.16)}
+.hero .eyebrow{font-size:12px;font-weight:800;opacity:.8;letter-spacing:.02em}.hero h1{margin:7px 0 8px;font-size:25px;line-height:1.3}.hero p{margin:0;font-size:14px;opacity:.92}.meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}.meta span{padding:5px 9px;border:1px solid rgba(255,255,255,.28);border-radius:999px;font-size:11px;font-weight:700}
+.notice{margin:15px 0 0;padding:12px 14px;border:1px solid #dbe5f5;border-radius:11px;background:#fff;color:#526071;font-size:12px}.notice strong{color:#263c66}
+form{margin-top:16px}.q{margin-bottom:14px;padding:21px;border:1px solid var(--line);border-radius:15px;background:#fff;box-shadow:0 4px 14px rgba(18,38,63,.035)}
+.q-title{margin:0 0 4px;font-size:16px;font-weight:800}.q-sub{margin:0 0 15px;color:var(--muted);font-size:12px}.required{color:#d92d20}
+.choices{display:grid;gap:8px}.choice{position:relative;display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid #d8e0ea;border-radius:10px;background:#fff;cursor:pointer;transition:.12s}.choice:hover{border-color:#9db3df;background:#f8fbff}.choice input{width:18px;height:18px;accent-color:var(--blue);flex:0 0 auto}.choice:has(input:checked){border-color:var(--blue);background:#f1f6ff;color:#082e84;font-weight:700}
+textarea{width:100%;min-height:110px;resize:vertical;padding:12px;border:1px solid #cfd8e5;border-radius:10px;font:inherit;font-size:14px;outline:none}textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(4,55,171,.09)}
+.counter{text-align:right;color:#98a2b3;font-size:11px;margin-top:4px}
+.submit{width:100%;height:52px;border:0;border-radius:12px;background:var(--blue);color:#fff;font-weight:800;font-size:16px;cursor:pointer;box-shadow:0 7px 18px rgba(4,55,171,.18)}.submit:disabled{opacity:.55;cursor:not-allowed}.error{display:none;margin:0 0 12px;padding:11px 13px;border-radius:9px;background:#fff1f0;color:#b42318;font-size:13px}.error.show{display:block}
+.thanks{display:none;margin-top:17px;padding:34px 24px;text-align:center;border:1px solid var(--line);border-radius:16px;background:#fff}.thanks.show{display:block}.thanks .icon{font-size:39px}.thanks h2{margin:8px 0 6px;font-size:22px}.thanks p{margin:0;color:var(--muted);font-size:14px}
+.honeypot{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;opacity:0!important}
+@media(max-width:520px){.wrap{padding-top:16px}.hero{padding:22px 18px}.hero h1{font-size:21px}.q{padding:17px}.q-title{font-size:15px}.choice{padding:10px;font-size:13px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <section class="hero">
+    <div class="eyebrow">대한민국명장 사업장 지도</div>
+    <h1>이용자 의견조사</h1>
+    <p>더 편리한 서비스를 만들기 위해 이용 경험을 들려주세요.</p>
+    <div class="meta"><span>약 30초</span><span>6문항</span><span>익명 응답</span></div>
+  </section>
+  <div class="notice"><strong>안내</strong> · 성명·연락처는 입력받지 않습니다. 자유의견에는 개인정보를 적지 말아주세요.</div>
+
+  <form id="surveyForm" novalidate>
+    <div class="honeypot" aria-hidden="true"><label>website<input id="website" tabindex="-1" autocomplete="off"></label></div>
+
+    <section class="q">
+      <p class="q-title">1. 대한민국명장 사업장 지도가 명장 사업장을 찾는 데 도움이 되었나요? <span class="required">*</span></p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="helpfulness" value="5">매우 도움이 됨</label>
+        <label class="choice"><input type="radio" name="helpfulness" value="4">도움이 됨</label>
+        <label class="choice"><input type="radio" name="helpfulness" value="3">보통</label>
+        <label class="choice"><input type="radio" name="helpfulness" value="2">도움이 되지 않음</label>
+        <label class="choice"><input type="radio" name="helpfulness" value="1">전혀 도움이 되지 않음</label>
+      </div>
+    </section>
+
+    <section class="q">
+      <p class="q-title">2. 기존보다 대한민국명장 관련 정보를 찾기 편리해졌다고 생각하나요? <span class="required">*</span></p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="accessibility" value="5">매우 그렇다</label>
+        <label class="choice"><input type="radio" name="accessibility" value="4">그렇다</label>
+        <label class="choice"><input type="radio" name="accessibility" value="3">보통</label>
+        <label class="choice"><input type="radio" name="accessibility" value="2">그렇지 않다</label>
+        <label class="choice"><input type="radio" name="accessibility" value="1">전혀 그렇지 않다</label>
+      </div>
+    </section>
+
+    <section class="q">
+      <p class="q-title">3. 지도에서 가장 유용했던 기능은 무엇인가요? <span class="required">*</span></p>
+      <p class="q-sub">복수선택 가능</p>
+      <div class="choices">
+        <label class="choice"><input type="checkbox" name="useful_features" value="nearby">내 주변 사업장 찾기</label>
+        <label class="choice"><input type="checkbox" name="useful_features" value="natural_search">자연어 검색</label>
+        <label class="choice"><input type="checkbox" name="useful_features" value="region_job">지역·직종별 검색</label>
+        <label class="choice"><input type="checkbox" name="useful_features" value="location">사업장 위치 확인</label>
+        <label class="choice"><input type="checkbox" name="useful_features" value="naver_place">네이버 플레이스 연결</label>
+        <label class="choice"><input type="checkbox" name="useful_features" value="directions">길찾기</label>
+      </div>
+    </section>
+
+    <section class="q">
+      <p class="q-title">4. 이 서비스를 통해 대한민국명장 제도를 더 알게 되었나요? <span class="required">*</span></p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="awareness" value="5">매우 그렇다</label>
+        <label class="choice"><input type="radio" name="awareness" value="4">그렇다</label>
+        <label class="choice"><input type="radio" name="awareness" value="3">보통</label>
+        <label class="choice"><input type="radio" name="awareness" value="2">그렇지 않다</label>
+        <label class="choice"><input type="radio" name="awareness" value="1">전혀 그렇지 않다</label>
+      </div>
+    </section>
+
+    <section class="q">
+      <p class="q-title">5. 앞으로도 대한민국명장 사업장 지도를 이용할 의향이 있나요? <span class="required">*</span></p>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="reuse_intent" value="5">매우 있다</label>
+        <label class="choice"><input type="radio" name="reuse_intent" value="4">있다</label>
+        <label class="choice"><input type="radio" name="reuse_intent" value="3">보통</label>
+        <label class="choice"><input type="radio" name="reuse_intent" value="2">없다</label>
+        <label class="choice"><input type="radio" name="reuse_intent" value="1">전혀 없다</label>
+      </div>
+    </section>
+
+    <section class="q">
+      <p class="q-title">6. 추가되었으면 하는 기능이나 의견이 있다면 자유롭게 작성해 주세요.</p>
+      <p class="q-sub">선택 문항</p>
+      <textarea id="freeComment" maxlength="1000" placeholder="의견을 자유롭게 작성해 주세요."></textarea>
+      <div class="counter"><span id="commentCount">0</span>/1000</div>
+    </section>
+
+    <div id="formError" class="error" role="alert"></div>
+    <button id="submitButton" class="submit" type="submit">설문 제출하기</button>
+  </form>
+
+  <section id="thanks" class="thanks" aria-live="polite">
+    <div class="icon">✓</div>
+    <h2>참여해 주셔서 감사합니다!</h2>
+    <p>보내주신 의견은 대한민국명장 사업장 지도 개선에 활용할게요.</p>
+  </section>
+</main>
+<script>
+'use strict';
+const cfg=window.MEISTER_SUPABASE_CONFIG||{};
+const db=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{persistSession:false,autoRefreshToken:false}});
+const form=document.getElementById('surveyForm');
+const btn=document.getElementById('submitButton');
+const errorBox=document.getElementById('formError');
+const thanks=document.getElementById('thanks');
+const comment=document.getElementById('freeComment');
+const count=document.getElementById('commentCount');
+const startAt=Date.now();
+comment.addEventListener('input',()=>count.textContent=comment.value.length);
+function selected(name){const el=form.querySelector(`input[name="${name}"]:checked`);return el?Number(el.value):null}
+function showError(msg){errorBox.textContent=msg;errorBox.classList.add('show');errorBox.scrollIntoView({behavior:'smooth',block:'center'})}
+function sourceValue(){const raw=(new URLSearchParams(location.search).get('source')||'public').trim();return /^[a-zA-Z0-9_-]{1,50}$/.test(raw)?raw:'public'}
+if(localStorage.getItem('meister_user_survey_submitted')==='1'){
+  form.style.display='none';thanks.classList.add('show');
+}
+form.addEventListener('submit',async e=>{
+  e.preventDefault(); errorBox.classList.remove('show');
+  if(document.getElementById('website').value) return;
+  const helpfulness=selected('helpfulness'),accessibility=selected('accessibility'),awareness=selected('awareness'),reuse=selected('reuse_intent');
+  const features=[...form.querySelectorAll('input[name="useful_features"]:checked')].map(x=>x.value);
+  if(!helpfulness||!accessibility||!awareness||!reuse||features.length===0){showError('필수 문항에 모두 응답해 주세요.');return}
+  if(Date.now()-startAt<1500){showError('문항을 확인한 뒤 다시 제출해 주세요.');return}
+  btn.disabled=true;btn.textContent='제출 중...';
+  try{
+    const payload={helpfulness,accessibility,useful_features:features,awareness,reuse_intent:reuse,free_comment:comment.value.trim()||null,source:sourceValue()};
+    const {error}=await db.from('meister_user_survey').insert(payload);
+    if(error) throw error;
+    localStorage.setItem('meister_user_survey_submitted','1');
+    form.style.display='none';thanks.classList.add('show');window.scrollTo({top:0,behavior:'smooth'});
+  }catch(err){console.error(err);showError('설문 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.');btn.disabled=false;btn.textContent='설문 제출하기'}
+});
+</script>
+</body>
+</html>
