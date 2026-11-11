@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>대한민국명장 지도 시험운용 통계</title>
+<script src="supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box}:root{--blue:#0437ab;--navy:#06296f;--bg:#f4f6f9;--card:#fff;--line:#dfe4ea;--text:#1f2937;--muted:#667085;--warn:#fff7e6;--warnline:#f2c46d}
+body{margin:0;font-family:"Pretendard","Noto Sans KR",Arial,sans-serif;background:var(--bg);color:var(--text)}
+header{padding:24px 30px;background:linear-gradient(135deg,var(--navy),var(--blue));color:white}header h1{margin:0;font-size:25px}header p{margin:7px 0 0;opacity:.9;font-size:14px}
+main{width:min(1320px,calc(100% - 30px));margin:24px auto 50px}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px}
+.login{width:min(440px,100%);margin:60px auto}.login input{width:100%;height:44px;border:1px solid #cfd6df;border-radius:8px;padding:0 12px;margin:6px 0 14px;font:inherit}
+.btn{border:0;border-radius:8px;padding:11px 16px;font-weight:800;cursor:pointer}.primary{background:var(--blue);color:#fff}.secondary{background:#edf1f6;color:#344054}
+.hidden{display:none!important}.toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.banner{background:var(--warn);border-color:var(--warnline);line-height:1.6}.banner strong{color:#8a5600}
+.summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:16px}.metric{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px}.metric .label{font-size:13px;color:var(--muted);font-weight:700}.metric .value{font-size:30px;font-weight:900;margin-top:8px}.metric .sub{font-size:12px;color:#98a2b3;margin-top:5px}
+.grid{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}.panel h2{margin:0 0 5px;font-size:18px}.desc{margin:0 0 14px;color:var(--muted);font-size:13px}.chart{height:330px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px;border-bottom:1px solid #eaecf0;text-align:left}th{background:#f8fafc;color:#475467}.num{text-align:right}.badge{display:inline-block;padding:5px 9px;background:#eef4ff;color:#0437ab;border-radius:999px;font-size:12px;font-weight:800}.status{color:var(--muted);font-size:13px;margin-top:10px}.table-wrap{overflow:auto}
+@media(max-width:980px){.summary{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}@media(max-width:560px){header{padding:20px}.summary{grid-template-columns:1fr}.metric .value{font-size:26px}}
+</style>
+</head>
+<body>
+<header><h1>대한민국명장 지도 시험운용 통계</h1><p>프로토타입 개발·운용 시뮬레이션 대시보드</p></header>
+<main>
+<section id="loginCard" class="card login"><h2>관리자 로그인</h2><p class="status">기존 Supabase 관리자 계정으로 로그인해.</p><form id="loginForm"><label>이메일</label><input id="email" type="email" required autocomplete="username"><label>비밀번호</label><input id="password" type="password" required autocomplete="current-password"><button class="btn primary" style="width:100%" type="submit">로그인</button><div id="loginMsg" class="status"></div></form></section>
+<section id="app" class="hidden">
+<section class="card toolbar"><div><strong>시험운용 통계 시나리오</strong><div class="status">prototype_2026_v1 · 2026.05 ~ 2026.10</div></div><div><span class="badge">누적 접속 목표 25,455건</span> <button id="refreshBtn" class="btn secondary">새로고침</button> <button id="logoutBtn" class="btn secondary">로그아웃</button></div></section>
+<section class="card banner"><strong>시험운용 시뮬레이션 데이터</strong><br>본 화면의 수치는 프로토타입 검증·화면 테스트를 위해 생성한 가상 데이터이며 실제 방문 접속기록과 분리되어 저장돼.</section>
+<section class="summary">
+<article class="metric"><div class="label">누적 페이지 접속</div><div id="mPage" class="value">-</div><div class="sub">2026.05~10 누적</div></article>
+<article class="metric"><div class="label">최종월 접속</div><div id="mLast" class="value">-</div><div class="sub">2026년 10월</div></article>
+<article class="metric"><div class="label">검색 실행</div><div id="mSearch" class="value">-</div><div class="sub">자연어·키워드 검색</div></article>
+<article class="metric"><div class="label">사업장 상세 활동</div><div id="mDetail" class="value">-</div><div class="sub">마커+상세 조회</div></article>
+<article class="metric"><div class="label">외부 지도 이동</div><div id="mExternal" class="value">-</div><div class="sub">플레이스+길찾기</div></article>
+</section>
+<section class="grid"><article class="card panel"><h2>월별 접속 증가 추이</h2><p class="desc">시험운용 기간 동안 월별 페이지 접속이 단계적으로 증가하는 시나리오</p><div class="chart"><canvas id="monthlyChart"></canvas></div></article><article class="card panel"><h2>주요 기능별 활동</h2><p class="desc">접속 이후 실제 페이지에서 발생하는 주요 행동의 누적 횟수</p><div class="chart"><canvas id="activityChart"></canvas></div></article></section>
+<section class="card panel"><h2>월별 이용 현황</h2><p class="desc">페이지 접속과 핵심 이용행동의 월별 변화</p><div class="table-wrap"><table><thead><tr><th>월</th><th class="num">접속</th><th class="num">검색</th><th class="num">사업장 상세</th><th class="num">외부 지도 이동</th><th class="num">공유</th></tr></thead><tbody id="monthBody"></tbody></table></div></section>
+<section class="grid"><article class="card panel"><h2>사업장별 이용 상위</h2><p class="desc">마커·상세·네이버플레이스·길찾기·공유 활동 합계</p><div class="table-wrap"><table><thead><tr><th>순위</th><th>사업장</th><th class="num">활동</th></tr></thead><tbody id="businessBody"></tbody></table></div></article><article class="card panel"><h2>서비스 성장 요약</h2><p class="desc">시험운용 시나리오 기준 핵심 성장지표</p><div id="growthBox" style="line-height:2;font-size:15px"></div></article></section>
+<div id="status" class="status"></div>
+</section>
+</main>
+<script>
+const cfg=window.MEISTER_SUPABASE_CONFIG||{};const db=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true}});const $=id=>document.getElementById(id);const SCENARIO='prototype_2026_v1';let monthlyChart=null,activityChart=null;const fmt=n=>Number(n||0).toLocaleString('ko-KR');
+function showLogin(){$('loginCard').classList.remove('hidden');$('app').classList.add('hidden')}async function showApp(){$('loginCard').classList.add('hidden');$('app').classList.remove('hidden');await load()}
+async function fetchAll(){const out=[];let from=0;const size=1000;while(true){const {data,error}=await db.from('map_analytics_simulation').select('*').eq('scenario',SCENARIO).order('stat_date',{ascending:true}).range(from,from+size-1);if(error)throw error;out.push(...(data||[]));if(!data||data.length<size)break;from+=size}return out}
+async function loadBusinesses(){const {data,error}=await db.from('meister_businesses').select('business_id,business_name,master_name');if(error)throw error;return new Map((data||[]).map(r=>[r.business_id,r]))}
+function sum(rows,names){const set=new Set(names);return rows.reduce((s,r)=>s+(set.has(r.event_name)?Number(r.event_count||0):0),0)}
+function monthly(rows){const map=new Map();for(const r of rows){const m=String(r.stat_date).slice(0,7);if(!map.has(m))map.set(m,{month:m,page:0,search:0,detail:0,external:0,share:0});const x=map.get(m),n=Number(r.event_count||0);if(r.event_name==='page_view')x.page+=n;if(r.event_name==='search_execute')x.search+=n;if(r.event_name==='marker_click'||r.event_name==='business_detail_click')x.detail+=n;if(r.event_name==='naver_place_click'||r.event_name==='directions_click')x.external+=n;if(r.event_name==='share_click')x.share+=n}return [...map.values()].sort((a,b)=>a.month.localeCompare(b.month))}
+function topBusinesses(rows,nameMap){const map=new Map(),events=new Set(['marker_click','business_detail_click','naver_place_click','directions_click','share_click']);for(const r of rows){if(!events.has(r.event_name)||!/^B\d+/.test(r.target_id||''))continue;map.set(r.target_id,(map.get(r.target_id)||0)+Number(r.event_count||0))}return [...map.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10).map(([id,count],i)=>({rank:i+1,id,count,info:nameMap.get(id)}))}
+function drawMonthly(ms){if(monthlyChart)monthlyChart.destroy();monthlyChart=new Chart($('monthlyChart'),{type:'line',data:{labels:ms.map(x=>x.month.replace('2026-','')+'월'),datasets:[{label:'월별 접속',data:ms.map(x=>x.page),tension:.25,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}})}
+function drawActivity(rows){const items=[['검색 실행',sum(rows,['search_execute'])],['사업장 상세',sum(rows,['marker_click','business_detail_click'])],['외부 지도 이동',sum(rows,['naver_place_click','directions_click'])],['지역·직종 필터',sum(rows,['region_filter','category_filter'])],['공유',sum(rows,['share_click'])]];if(activityChart)activityChart.destroy();activityChart=new Chart($('activityChart'),{type:'bar',data:{labels:items.map(x=>x[0]),datasets:[{data:items.map(x=>x[1])}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{precision:0}}}}})}
+async function load(){try{$('status').textContent='시뮬레이션 통계를 불러오는 중...';const [rows,nameMap]=await Promise.all([fetchAll(),loadBusinesses()]);const ms=monthly(rows);const page=sum(rows,['page_view']),search=sum(rows,['search_execute']),detail=sum(rows,['marker_click','business_detail_click']),external=sum(rows,['naver_place_click','directions_click']);$('mPage').textContent=fmt(page);$('mLast').textContent=fmt(ms.at(-1)?.page);$('mSearch').textContent=fmt(search);$('mDetail').textContent=fmt(detail);$('mExternal').textContent=fmt(external);$('monthBody').innerHTML=ms.map(x=>'<tr><td>'+x.month+'</td><td class="num">'+fmt(x.page)+'</td><td class="num">'+fmt(x.search)+'</td><td class="num">'+fmt(x.detail)+'</td><td class="num">'+fmt(x.external)+'</td><td class="num">'+fmt(x.share)+'</td></tr>').join('');const tops=topBusinesses(rows,nameMap);$('businessBody').innerHTML=tops.map(x=>'<tr><td>'+x.rank+'</td><td><strong>'+(x.info?.business_name||x.id)+'</strong><br><span style="color:#98a2b3;font-size:12px">'+x.id+(x.info?.master_name?' · '+x.info.master_name:'')+'</span></td><td class="num">'+fmt(x.count)+'</td></tr>').join('');const first=ms[0]?.page||0,last=ms.at(-1)?.page||0,growth=first?((last/first-1)*100):0;$('growthBox').innerHTML='• 누적 페이지 접속 <strong>'+fmt(page)+'건</strong><br>• 월 접속량 <strong>'+fmt(first)+' → '+fmt(last)+'건</strong><br>• 최초월 대비 최종월 <strong>'+growth.toFixed(1)+'% 증가</strong><br>• 검색 실행 <strong>'+fmt(search)+'회</strong><br>• 사업장 상세 관련 활동 <strong>'+fmt(detail)+'회</strong><br>• 외부 지도 연결 <strong>'+fmt(external)+'회</strong>';drawMonthly(ms);drawActivity(rows);$('status').textContent='조회 완료 · 실제 로그와 분리된 시험운용 시뮬레이션 데이터'}catch(e){console.error(e);$('status').textContent='조회 실패: '+e.message}}
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginMsg').textContent='';const {data,error}=await db.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error){$('loginMsg').textContent='로그인 실패: '+error.message;return}if(data.user)showApp()});$('logoutBtn').onclick=async()=>{await db.auth.signOut();showLogin()};$('refreshBtn').onclick=load;db.auth.onAuthStateChange((_,s)=>s?.user?showApp():showLogin());db.auth.getUser().then(({data})=>data?.user?showApp():showLogin());
+</script>
+</body>
+</html>
